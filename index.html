@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1A4D4A">
+<title>Дисциплина — ежедневный путь</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Дисциплина">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root {
+    --bg: #EEF0F1;
+    --surface: #FFFFFF;
+    --surface-2: #F4F6F7;
+    --ink: #1C2B2A;
+    --muted: #5C6B6A;
+    --hint: #93A0A0;
+    --line: #DCE2E2;
+    --line-strong: #C5CFCF;
+    --teal: #1A4D4A;
+    --teal-mid: #2E7D78;
+    --teal-bright: #3FA09A;
+    --teal-soft: #E2EDEC;
+    --steel: #3C5A6E;
+    --amber: #B5730E;
+    --amber-soft: #F6EBD7;
+    --red: #B33A2F;
+    --radius: 12px;
+    --radius-sm: 9px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101716;
+      --surface: #18211F;
+      --surface-2: #1E2826;
+      --ink: #E4EAE9;
+      --muted: #97A4A2;
+      --hint: #647170;
+      --line: #2A3633;
+      --line-strong: #38463F;
+      --teal-soft: #15302D;
+      --amber-soft: #33260F;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { background: var(--bg); }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink); line-height: 1.5; max-width: 600px; margin: 0 auto;
+    padding: 0 14px 56px; -webkit-font-smoothing: antialiased;
+  }
+
+  header { padding: 20px 4px 6px; }
+  .brand-row { display: flex; align-items: center; justify-content: space-between; }
+  .brand { font-size: 14px; font-weight: 700; letter-spacing: 0.04em; color: var(--teal); text-transform: uppercase; }
+  .brand span { color: var(--hint); font-weight: 500; }
+  .nav { display: flex; align-items: center; gap: 5px; }
+  .nav button {
+    height: 34px; min-width: 34px; padding: 0 9px; border: 0.5px solid var(--line-strong);
+    background: var(--surface); border-radius: 8px; color: var(--ink); font-size: 17px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1;
+  }
+  .nav button.today-btn { font-size: 12px; font-weight: 600; }
+  .nav button:active { transform: scale(0.94); }
+  .nav button:disabled { opacity: 0.3; }
+
+  .tabs { display: flex; gap: 4px; margin-top: 16px; background: var(--surface-2);
+    padding: 4px; border-radius: 10px; }
+  .tabs button { flex: 1; padding: 9px 4px; border: none; background: transparent; color: var(--muted);
+    font-size: 13px; font-weight: 600; border-radius: 7px; cursor: pointer; }
+  .tabs button.active { background: var(--surface); color: var(--teal); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .datewrap { margin-top: 18px; display: flex; align-items: flex-end; justify-content: space-between; }
+  .today-date { font-size: 23px; font-weight: 700; letter-spacing: -0.01em; }
+  .today-sub { font-size: 13px; color: var(--muted); margin-top: 1px; }
+
+  .stats { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center;
+    margin-top: 16px; padding: 16px 14px; background: var(--surface); border: 0.5px solid var(--line);
+    border-radius: var(--radius); }
+  .stat { text-align: center; }
+  .stat .num { font-size: 27px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; }
+  .stat .num.accent { color: var(--amber); }
+  .stat .lbl { font-size: 11px; color: var(--muted); margin-top: 5px; }
+  .ring-wrap { position: relative; width: 80px; height: 80px; }
+  .ring-wrap .pct { position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; }
+  .ring-wrap .pct b { font-size: 19px; font-weight: 700; }
+  .ring-wrap .pct small { font-size: 9.5px; color: var(--muted); }
+
+  .hardrow { display: flex; align-items: center; justify-content: space-between;
+    margin-top: 12px; padding: 11px 14px; background: var(--amber-soft); border-radius: var(--radius-sm); }
+  .hardrow .t { font-size: 13px; color: var(--amber); font-weight: 600; }
+  .hardrow .s { font-size: 11px; color: var(--amber); opacity: 0.85; margin-top: 1px; }
+  .switch { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  .slider { position: absolute; inset: 0; background: var(--line-strong); border-radius: 13px; transition: background 0.2s; pointer-events: none; }
+  .slider::before { content: ''; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
+  .switch input:checked + .slider { background: var(--amber); }
+  .switch input:checked + .slider::before { transform: translateX(18px); }
+
+  .blocks { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; }
+  .block { background: var(--surface); border: 0.5px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .bhead { display: flex; align-items: center; gap: 11px; padding: 13px 14px; cursor: pointer; user-select: none; }
+  .bdot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+  .bhead .bnm { font-size: 15px; font-weight: 600; }
+  .bhead .btm { font-size: 11.5px; color: var(--hint); }
+  .bhead .bprog { margin-left: auto; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bhead .chev { width: 18px; height: 18px; color: var(--hint); transition: transform 0.2s; flex-shrink: 0; }
+  .block.open .chev { transform: rotate(180deg); }
+  .btasks { display: none; padding: 0 10px 10px; }
+  .block.open .btasks { display: block; }
+  .task { display: flex; align-items: flex-start; gap: 11px; padding: 10px 11px; margin-top: 4px;
+    background: var(--surface-2); border-radius: var(--radius-sm); cursor: pointer; }
+  .task:active { opacity: 0.7; }
+  .check { width: 22px; height: 22px; flex-shrink: 0; border-radius: 6px; border: 1.5px solid var(--line-strong);
+    display: flex; align-items: center; justify-content: center; background: var(--surface); margin-top: 1px; }
+  .task.done .check { background: var(--teal-mid); border-color: var(--teal-mid); }
+  .check svg { width: 12px; height: 12px; opacity: 0; }
+  .task.done .check svg { opacity: 1; }
+  .nm-wrap { flex: 1; min-width: 0; }
+  .nm-line { display: flex; align-items: center; gap: 8px; }
+  .task .nm { font-size: 14px; }
+  .task.done .nm { color: var(--muted); text-decoration: line-through; }
+  .hmeta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .hmeta span { font-size: 11.5px; color: var(--hint); display: flex; align-items: center; gap: 3px; }
+  .hmeta svg { width: 11px; height: 11px; }
+  .hmeta .m-time, .tk-meta .m-time { color: var(--teal); font-weight: 600; }
+  .hstar { flex-shrink: 0; color: var(--amber); padding: 1px; margin-top: 1px; }
+  .hstar svg { width: 18px; height: 18px; fill: var(--amber); }
+  .min-tag { font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: var(--amber-soft); color: var(--amber); flex-shrink: 0; letter-spacing: 0.02em; }
+  .task.hidden-soft { display: none; }
+  .expand-row { display: flex; gap: 8px; margin-top: 12px; }
+  .expand-row button { flex: 1; padding: 9px; font-size: 12px; font-weight: 600; color: var(--muted);
+    background: var(--surface); border: 0.5px solid var(--line); border-radius: var(--radius-sm); cursor: pointer; }
+
+  .panel { margin-top: 16px; padding: 16px 14px; background: var(--surface); border: 0.5px solid var(--line); border-radius: var(--radius); }
+  .panel h2 { font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 13px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .panel .hsub { font-size: 11px; color: var(--hint); font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+  .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .wd { aspect-ratio: 0.82; border-radius: 8px; background: var(--surface-2); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 2px; border: 0.5px solid var(--line); }
+  .wd.today { border-color: var(--teal-mid); border-width: 1.5px; }
+  .wd .n { font-size: 10px; color: var(--hint); }
+  .wd .v { font-size: 11px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .month { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .mhead { font-size: 10px; color: var(--hint); text-align: center; padding-bottom: 4px; font-weight: 600; }
+  .mc { aspect-ratio: 1; border-radius: 5px; background: var(--surface-2); position: relative; }
+  .mc.empty { background: transparent; }
+  .mc .dd { position: absolute; top: 2px; left: 4px; font-size: 9px; }
+
+  .records { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
+  .rec { padding: 14px; background: var(--surface); border: 0.5px solid var(--line); border-radius: var(--radius); text-align: center; }
+  .rec .num { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+  .rec .num.accent { color: var(--amber); }
+  .rec .lbl { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  .chartbox { margin-top: 6px; }
+  .catlist { display: flex; flex-direction: column; gap: 9px; }
+  .catrow .cattop { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; }
+  .catrow .cattop b { font-weight: 600; }
+  .catrow .cattop .v { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .catbar { height: 7px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+  .catbar i { display: block; height: 100%; border-radius: 4px; }
+
+  .report-grid { display: flex; flex-direction: column; gap: 8px; }
+  .rep-btn { display: flex; align-items: center; gap: 12px; padding: 14px; background: var(--surface);
+    border: 0.5px solid var(--line); border-radius: var(--radius); cursor: pointer; text-align: left; width: 100%; }
+  .rep-btn:active { background: var(--surface-2); }
+  .rep-ic { width: 38px; height: 38px; border-radius: 9px; background: var(--teal-soft); color: var(--teal);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .rep-ic svg { width: 19px; height: 19px; }
+  .rep-txt { display: flex; flex-direction: column; }
+  .rep-txt .t { font-size: 14.5px; font-weight: 600; display: block; }
+  .rep-txt .s { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .rep-arrow { margin-left: auto; color: var(--hint); }
+
+  .foot { margin-top: 16px; display: flex; gap: 8px; }
+  .foot button { flex: 1; padding: 12px; border: 0.5px solid var(--line); background: var(--surface);
+    color: var(--muted); border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 500; cursor: pointer; }
+  .foot button:active { transform: scale(0.98); }
+  .legend-note { margin-top: 16px; font-size: 11px; color: var(--hint); text-align: center; line-height: 1.7; }
+
+  .empty-state { text-align: center; padding: 30px 16px; color: var(--hint); font-size: 13px; }
+
+  /* ===== TASKS MODULE ===== */
+  .tk-summary { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 14px; }
+  .tk-sum { padding: 12px 8px; background: var(--surface); border: 0.5px solid var(--line); border-radius: var(--radius); text-align: center; }
+  .tk-sum .n { font-size: 21px; font-weight: 700; letter-spacing: -0.02em; }
+  .tk-sum .n.warn { color: var(--red); }
+  .tk-sum .l { font-size: 10.5px; color: var(--muted); margin-top: 3px; }
+  .tk-chips { display: flex; gap: 7px; overflow-x: auto; margin-top: 14px; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+  .tk-chip { flex-shrink: 0; padding: 7px 13px; border-radius: 9px; font-size: 13px; font-weight: 500; background: var(--surface); border: 0.5px solid var(--line); color: var(--muted); cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+  .tk-chip.active { background: var(--teal); color: #fff; border-color: var(--teal); }
+  .tk-chip .cnt { font-size: 11px; opacity: 0.7; }
+  .tk-chip.addlist { color: var(--teal); font-weight: 600; }
+  .tk-tasks { margin-top: 14px; display: flex; flex-direction: column; gap: 7px; }
+  .tk-task { display: flex; align-items: flex-start; gap: 11px; padding: 12px 13px; background: var(--surface); border: 0.5px solid var(--line); border-radius: var(--radius-sm); cursor: pointer; }
+  .tk-task:active { background: var(--surface-2); }
+  .tk-cb { width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; border: 1.5px solid var(--line-strong); display: flex; align-items: center; justify-content: center; background: var(--surface); margin-top: 1px; }
+  .tk-task.done .tk-cb { background: var(--teal-mid); border-color: var(--teal-mid); }
+  .tk-cb svg { width: 12px; height: 12px; opacity: 0; }
+  .tk-task.done .tk-cb svg { opacity: 1; }
+  .tk-main { flex: 1; min-width: 0; }
+  .tk-ttl { font-size: 14.5px; line-height: 1.35; }
+  .tk-task.done .tk-ttl { color: var(--muted); text-decoration: line-through; }
+  .tk-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 5px; }
+  .tk-meta span { font-size: 11.5px; color: var(--hint); display: flex; align-items: center; gap: 3px; }
+  .tk-meta span.over { color: var(--red); }
+  .tk-meta svg { width: 11px; height: 11px; }
+  .tk-star { flex-shrink: 0; padding: 2px; color: var(--line-strong); background: none; border: none; cursor: pointer; margin-top: -1px; }
+  .tk-star.on { color: var(--amber); }
+  .tk-star svg { width: 19px; height: 19px; fill: none; }
+  .tk-star.on svg { fill: var(--amber); }
+  .tk-comp-head { margin-top: 18px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .tk-comp-head svg { width: 14px; height: 14px; transition: transform 0.2s; }
+  .tk-comp-head.collapsed svg { transform: rotate(-90deg); }
+  .tk-comp-list { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .tk-empty { text-align: center; padding: 36px 16px; color: var(--hint); font-size: 13px; }
+  .tk-addbar { position: sticky; bottom: 0; display: flex; gap: 8px; margin-top: 16px; padding: 10px 0 6px; background: linear-gradient(to top, var(--bg) 70%, transparent); }
+  .tk-addbar input { flex: 1; padding: 13px 15px; border: 0.5px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font-size: 14.5px; outline: none; }
+  .tk-addbar input:focus { border-color: var(--teal-mid); }
+  .tk-addbar button { width: 48px; flex-shrink: 0; border: none; background: var(--teal); color: #fff; border-radius: var(--radius-sm); font-size: 24px; cursor: pointer; line-height: 1; }
+  .tk-addbar button:active { transform: scale(0.95); }
+
+  /* modal */
+  .tk-modal { position: fixed; inset: 0; background: rgba(10,18,16,0.45); display: none; align-items: flex-end; justify-content: center; z-index: 50; }
+  .tk-modal.open { display: flex; }
+  .tk-modal-card { width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto; background: var(--bg); border-radius: 18px 18px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); }
+  @media (min-width: 600px){ .tk-modal { align-items: center; } .tk-modal-card { border-radius: 18px; } }
+  .tk-m-top { display: flex; align-items: center; gap: 11px; padding-bottom: 14px; border-bottom: 0.5px solid var(--line); }
+  .tk-m-check { width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; border: 1.5px solid var(--line-strong); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .tk-m-check svg { width: 14px; height: 14px; opacity: 0; }
+  .tk-modal-card.done .tk-m-check { background: var(--teal-mid); border-color: var(--teal-mid); }
+  .tk-modal-card.done .tk-m-check svg { opacity: 1; }
+  .tk-m-title { flex: 1; min-width: 0; font-size: 17px; font-weight: 600; border: none; background: none; color: var(--ink); outline: none; }
+  .tk-modal-card.done .tk-m-title { color: var(--muted); text-decoration: line-through; }
+  .tk-m-star { flex-shrink: 0; background: none; border: none; color: var(--line-strong); cursor: pointer; padding: 2px; }
+  .tk-m-star.on { color: var(--amber); }
+  .tk-m-star svg { width: 22px; height: 22px; fill: none; }
+  .tk-m-star.on svg { fill: var(--amber); }
+  .tk-m-steps { display: flex; flex-direction: column; gap: 2px; margin-top: 10px; }
+  .tk-step { display: flex; align-items: center; gap: 10px; padding: 8px 4px; }
+  .tk-step-cb { width: 19px; height: 19px; flex-shrink: 0; border-radius: 50%; border: 1.5px solid var(--line-strong); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .tk-step.done .tk-step-cb { background: var(--teal-mid); border-color: var(--teal-mid); }
+  .tk-step-cb svg { width: 10px; height: 10px; opacity: 0; }
+  .tk-step.done .tk-step-cb svg { opacity: 1; }
+  .tk-step .s-txt { flex: 1; font-size: 13.5px; }
+  .tk-step.done .s-txt { color: var(--muted); text-decoration: line-through; }
+  .tk-step .s-del { background: none; border: none; color: var(--hint); cursor: pointer; font-size: 17px; padding: 0 4px; }
+  .tk-m-addstep { display: flex; gap: 8px; margin: 4px 0 14px; padding-left: 4px; }
+  .tk-m-addstep input { flex: 1; padding: 8px 10px; border: 0.5px dashed var(--line-strong); border-radius: 8px; background: none; color: var(--ink); font-size: 13px; outline: none; }
+  .tk-m-addstep button { width: 34px; border: none; background: var(--surface-2); color: var(--teal); border-radius: 8px; font-size: 18px; cursor: pointer; }
+  .tk-m-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 4px; border: none; border-top: 0.5px solid var(--line); background: none; color: var(--ink); cursor: pointer; text-align: left; font-size: 14px; }
+  .tk-m-ic { width: 20px; flex-shrink: 0; color: var(--muted); display: flex; }
+  .tk-m-ic svg { width: 18px; height: 18px; }
+  .tk-m-lbl { flex: 1; }
+  .tk-m-row.on .tk-m-ic, .tk-m-row.on .tk-m-lbl { color: var(--teal); }
+  .tk-m-input { border: none; background: var(--surface-2); color: var(--ink); border-radius: 7px; padding: 7px 9px; font-size: 13px; font-family: inherit; outline: none; max-width: 56%; }
+  .tk-m-note { width: 100%; margin-top: 12px; min-height: 70px; border: 0.5px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); padding: 11px; font-size: 14px; font-family: inherit; resize: vertical; outline: none; }
+  .tk-m-note:focus { border-color: var(--teal-mid); }
+  .tk-m-foot { display: flex; gap: 10px; margin-top: 14px; }
+  .tk-m-del { flex: 1; padding: 12px; border: 0.5px solid var(--line); background: var(--surface); color: var(--red); border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; }
+  .tk-m-done { flex: 1; padding: 12px; border: none; background: var(--teal); color: #fff; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; }
+  .tk-reminfo { font-size: 11px; color: var(--hint); padding: 2px 4px 0; line-height: 1.5; }
+
+  /* lists drawer */
+  .tk-chip.listsbtn { font-weight: 600; }
+  .tk-drawer { position: fixed; inset: 0; background: rgba(10,18,16,0.45); display: none; z-index: 60; }
+  .tk-drawer.open { display: block; }
+  .tk-drawer-card { position: absolute; top: 0; left: 0; bottom: 0; width: 86%; max-width: 360px;
+    background: var(--bg); display: flex; flex-direction: column; box-shadow: 2px 0 20px rgba(0,0,0,0.2); }
+  .tk-drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 16px 12px; font-size: 17px; font-weight: 700; border-bottom: 0.5px solid var(--line); }
+  .tk-drawer-head button { background: none; border: none; font-size: 24px; color: var(--muted); cursor: pointer; line-height: 1; }
+  .tk-drawer-body { flex: 1; overflow-y: auto; padding: 8px 10px 16px; }
+  .tk-d-item { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: var(--radius-sm); cursor: pointer; }
+  .tk-d-item:active { background: var(--surface-2); }
+  .tk-d-item.active { background: var(--teal-soft); }
+  .tk-d-item .nm { flex: 1; font-size: 14.5px; }
+  .tk-d-item.active .nm { color: var(--teal); font-weight: 600; }
+  .tk-d-item .cnt { font-size: 12px; color: var(--hint); }
+  .tk-d-item .di { width: 18px; flex-shrink: 0; color: var(--muted); display: flex; }
+  .tk-d-item .di svg { width: 17px; height: 17px; }
+  .tk-d-smart { margin-bottom: 6px; }
+  .tk-d-group { margin-top: 10px; }
+  .tk-d-ghead { display: flex; align-items: center; gap: 8px; padding: 8px 12px 6px; cursor: pointer; }
+  .tk-d-ghead .gn { flex: 1; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  .tk-d-ghead .gchev { width: 14px; height: 14px; color: var(--hint); transition: transform 0.2s; }
+  .tk-d-ghead.collapsed .gchev { transform: rotate(-90deg); }
+  .tk-d-glist .tk-d-item { padding-left: 22px; }
+  .tk-d-glist .tk-d-item .nm { font-size: 14px; }
+  .tk-d-sep { height: 0.5px; background: var(--line); margin: 8px 4px; }
+  .tk-drawer-foot { display: flex; gap: 8px; padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); border-top: 0.5px solid var(--line); }
+  .tk-drawer-foot button { flex: 1; padding: 11px; border: 0.5px solid var(--line); background: var(--surface); color: var(--teal); border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand-row">
+    <div class="brand">Дисциплина <span>· Фуркат</span></div>
+    <div class="nav">
+      <button id="prev" aria-label="Назад">‹</button>
+      <button class="today-btn" id="todayBtn">Сегодня</button>
+      <button id="next" aria-label="Вперёд">›</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="active" data-tab="day">День</button>
+    <button data-tab="tasks">Задачи</button>
+    <button data-tab="stats">Стат.</button>
+    <button data-tab="reports">Отчёты</button>
+  </div>
+</header>
+
+<div class="view active" id="view-day">
+  <div class="datewrap">
+    <div>
+      <div class="today-date" id="dateMain">—</div>
+      <div class="today-sub" id="dateSub">—</div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="num accent" id="streak">0</div><div class="lbl">серия дней</div></div>
+    <div class="ring-wrap">
+      <svg width="80" height="80" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r="34" fill="none" stroke="var(--line)" stroke-width="6"/>
+        <circle id="ringFill" cx="40" cy="40" r="34" fill="none" stroke="var(--teal-mid)" stroke-width="6"
+          stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6"
+          transform="rotate(-90 40 40)" style="transition: stroke-dashoffset 0.4s;"/>
+      </svg>
+      <div class="pct"><b id="pctNum">0%</b><small>сегодня</small></div>
+    </div>
+    <div class="stat"><div class="num" id="total">0</div><div class="lbl">активных дней</div></div>
+  </div>
+
+  <div class="hardrow">
+    <div><div class="t">Тяжёлый день</div><div class="s">Показать только минимум</div></div>
+    <label class="switch"><input type="checkbox" id="hardToggle"><span class="slider"></span></label>
+  </div>
+
+  <div class="blocks" id="blocks"></div>
+
+  <div class="expand-row">
+    <button id="expandAll">Раскрыть все</button>
+    <button id="collapseAll">Свернуть все</button>
+  </div>
+
+  <div class="foot">
+    <button id="resetBtn">Сбросить день</button>
+  </div>
+</div>
+
+<div class="view" id="view-tasks">
+  <div class="datewrap">
+    <div><div class="today-date" id="tkTitle">Мой день</div>
+    <div class="today-sub" id="tkSub">—</div></div>
+  </div>
+
+  <div class="tk-summary" id="tkSummary"></div>
+
+  <div class="tk-chips" id="tkChips"></div>
+
+  <div class="tk-tasks" id="tkTasks"></div>
+
+  <div class="tk-comp-wrap" id="tkCompWrap"></div>
+
+  <div class="tk-addbar">
+    <input id="tkInput" type="text" placeholder="Добавить задачу" autocomplete="off">
+    <button id="tkAddBtn" aria-label="Добавить">+</button>
+  </div>
+</div>
+
+<div class="view" id="view-stats">
+  <div class="datewrap">
+    <div><div class="today-date" id="statsTitle">Статистика</div>
+    <div class="today-sub" id="statsSub">Динамика и эффективность</div></div>
+  </div>
+
+  <div class="records">
+    <div class="rec"><div class="num accent" id="bestStreak">0</div><div class="lbl">лучшая серия</div></div>
+    <div class="rec"><div class="num" id="avgPct">0%</div><div class="lbl">средний результат</div></div>
+  </div>
+
+  <div class="panel">
+    <h2>Эффективность · 14 дней</h2>
+    <div class="chartbox"><canvas id="lineChart" width="560" height="220"></canvas></div>
+  </div>
+
+  <div class="panel">
+    <h2>По неделям <span class="hsub">последние 8</span></h2>
+    <div class="chartbox"><canvas id="barChart" width="560" height="200"></canvas></div>
+  </div>
+
+  <div class="panel">
+    <h2>Слабые и сильные привычки <span class="hsub">за 30 дней</span></h2>
+    <div class="catlist" id="catList"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Последние 7 дней</h2>
+    <div class="week" id="week"></div>
+  </div>
+
+  <div class="panel">
+    <h2 id="monthTitle">Месяц</h2>
+    <div class="month" id="monthHead"></div>
+    <div class="month" id="month" style="margin-top:4px;"></div>
+  </div>
+</div>
+
+<div class="view" id="view-reports">
+  <div class="datewrap">
+    <div><div class="today-date">Отчёты</div>
+    <div class="today-sub">Выгрузка статистики в файл</div></div>
+  </div>
+
+  <div class="report-grid" style="margin-top:16px;">
+    <button class="rep-btn" data-report="day">
+      <span class="rep-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+      <span class="rep-txt"><span class="t">Отчёт за день</span><span class="s">Выбранный день, по задачам</span></span>
+      <span class="rep-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+    </button>
+    <button class="rep-btn" data-report="week">
+      <span class="rep-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg></span>
+      <span class="rep-txt"><span class="t">Отчёт за неделю</span><span class="s">7 дней, проценты и серия</span></span>
+      <span class="rep-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+    </button>
+    <button class="rep-btn" data-report="month">
+      <span class="rep-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg></span>
+      <span class="rep-txt"><span class="t">Отчёт за месяц</span><span class="s">Полный месяц + по привычкам</span></span>
+      <span class="rep-arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+    </button>
+  </div>
+
+  <div class="panel" style="margin-top:18px;">
+    <h2>Формат выгрузки</h2>
+    <div style="display:flex; gap:8px;">
+      <label style="flex:1; display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
+        <input type="radio" name="fmt" value="csv" checked> CSV (таблица / Excel)
+      </label>
+      <label style="flex:1; display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
+        <input type="radio" name="fmt" value="txt"> Текст (читаемый)
+      </label>
+    </div>
+  </div>
+
+  <div class="foot">
+    <button id="exportAll">Полная резервная копия (JSON)</button>
+  </div>
+  <div class="legend-note">Файлы скачиваются на устройство. CSV открывается в Excel и Google Таблицах.</div>
+</div>
+
+<div class="tk-modal" id="hbModal" aria-hidden="true">
+  <div class="tk-modal-card">
+    <div class="tk-m-top">
+      <button class="tk-m-check" id="hbCheck" aria-label="Выполнить"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></button>
+      <div class="tk-m-title" id="hbTitle" style="cursor:default"></div>
+      <button class="tk-m-star" id="hbStar" aria-label="Важное"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7 7 .5-5.5 4.5 2 7-6.5-4-6.5 4 2-7L2 9.5 9 9z"/></svg></button>
+    </div>
+
+    <label class="tk-m-row">
+      <span class="tk-m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+      <span class="tk-m-lbl">Время начала</span>
+      <input type="time" id="hbTime" class="tk-m-input">
+    </label>
+
+    <label class="tk-m-row">
+      <span class="tk-m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4l3 8 6-16 3 8h4"/></svg></span>
+      <span class="tk-m-lbl">Продолжительность, мин</span>
+      <input type="number" min="0" step="5" id="hbDur" class="tk-m-input" placeholder="—">
+    </label>
+
+    <label class="tk-m-row">
+      <span class="tk-m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/></svg></span>
+      <span class="tk-m-lbl">Повтор</span>
+      <select id="hbRepeat" class="tk-m-input">
+        <option value="">Нет</option>
+        <option value="daily">Ежедневно</option>
+        <option value="weekdays">По будням</option>
+        <option value="weekly">Еженедельно</option>
+      </select>
+    </label>
+
+    <label class="tk-m-row" id="hbDayRow" style="display:none">
+      <span class="tk-m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+      <span class="tk-m-lbl">День недели</span>
+      <select id="hbDay" class="tk-m-input">
+        <option value="1">Понедельник</option><option value="2">Вторник</option><option value="3">Среда</option>
+        <option value="4">Четверг</option><option value="5">Пятница</option><option value="6">Суббота</option><option value="0">Воскресенье</option>
+      </select>
+    </label>
+
+    <button class="tk-m-row" id="hbMin">
+      <span class="tk-m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4H22l-6 4.5 2.3 7.1-6.3-4.6L5.7 21l2.3-7.1-6-4.5h7.6z"/></svg></span>
+      <span class="tk-m-lbl" id="hbMinLbl">Отметить как «минимум»</span>
+    </button>
+
+    <textarea class="tk-m-note" id="hbNote" placeholder="Заметка"></textarea>
+
+    <div class="tk-m-foot">
+      <button class="tk-m-del" id="hbReset">Сбросить</button>
+      <button class="tk-m-done" id="hbClose">Готово</button>
+    </div>
+  </div>
+</div>
+
+<div class="tk-modal" id="tkModal" aria-hidden="true">
+  <div class="tk-modal-card">
+    <div class="tk-m-top">
+      <button class="tk-m-check" id="tkmCheck" aria-label="Выполнить"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></button>
+      <input class="tk-m-title" id="tkmTitle" type="text">
+      <button class="tk-m-star" id="tkmStar" aria-label="Важное"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7 7 .5-5.5 4.5 2 7-6.5-4-6.5 4 2-7L2 9.5 9 9z"/></svg></button>
+    </div>
+
+    <div class="tk-m-steps" id="tkmSteps"></div>
+    <div class="tk-m-addstep">
+      <input id="tkmStepInput" type="text" placeholder="Добавить шаг" autocomplete="off">
+      <button id="tkmStepAdd" aria-label="Добавить шаг">+</button>
+    </div>
+
+    <button class="tk-m-row" id="tkmMyday">
+      <span class="tk-m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg></span>
+      <span class="tk-m-lbl" id="tkmMydayLbl">Добавить в «Мой день»</span>
+    </button>
+
+    <label class="tk-m-row">
+      <span class="tk-m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+      <span class="tk-m-lbl">Время начала</span>
+      <input type="time" id="tkmTime" class="tk-m-input">
+    </label>
+
+    <label class="tk-m-row">
+      <span class="tk-m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4l3 8 6-16 3 8h4"/></svg></span>
+      <span class="tk-m-lbl">Продолжительность, мин</span>
+      <input type="number" min="0" step="5" id="tkmDur" class="tk-m-input" placeholder="—">
+    </label>
+
+    <label class="tk-m-row">
+      <span class="tk-m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+      <span class="tk-m-lbl">Срок</span>
+      <input type="date" id="tkmDue" class="tk-m-input">
+    </label>
+
+    <label class="tk-m-row">
+      <span class="tk-m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/></svg></span>
+      <span class="tk-m-lbl">Повтор</span>
+      <select id="tkmRepeat" class="tk-m-input">
+        <option value="none">Нет</option>
+        <option value="daily">Ежедневно</option>
+        <option value="weekdays">По будням</option>
+        <option value="weekly">Еженедельно</option>
+        <option value="monthly">Ежемесячно</option>
+      </select>
+    </label>
+
+    <label class="tk-m-row">
+      <span class="tk-m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg></span>
+      <span class="tk-m-lbl">Напоминание</span>
+      <input type="datetime-local" id="tkmRemind" class="tk-m-input">
+    </label>
+
+    <label class="tk-m-row tk-m-list-row">
+      <span class="tk-m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
+      <span class="tk-m-lbl">Список</span>
+      <select id="tkmList" class="tk-m-input"></select>
+    </label>
+
+    <textarea class="tk-m-note" id="tkmNote" placeholder="Заметка"></textarea>
+
+    <div class="tk-m-foot">
+      <button class="tk-m-del" id="tkmDelete">Удалить</button>
+      <button class="tk-m-done" id="tkmClose">Готово</button>
+    </div>
+  </div>
+</div>
+
+<div class="tk-drawer" id="tkDrawer" aria-hidden="true">
+  <div class="tk-drawer-card">
+    <div class="tk-drawer-head"><span>Списки</span><button id="tkDrawerClose" aria-label="Закрыть">×</button></div>
+    <div class="tk-drawer-body" id="tkDrawerBody"></div>
+    <div class="tk-drawer-foot">
+      <button id="tkAddGroupBtn">+ группа</button>
+      <button id="tkAddListBtn">+ список</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const BLOCKS = [
+  { anchor: 'Чудесное утро', time: 'День Сурка', color: '#2E7D78', tasks: [
+    { id: 'fajr',        name: 'Morning salah.', min: true, star:true, rep:'daily', myday:true },
+    { id: 'water',       name: 'Пью 2 стакана кипячёной воды утром', star:true, rep:'daily', myday:true },
+    { id: 'med',         name: 'МЕДИТАЦИЯ', min: true, rep:'daily', myday:true },
+    { id: 'aff',         name: 'Аффирмации', star:true, rep:'daily', myday:true },
+    { id: 'vis',         name: 'Позитив на утро', star:true, rep:'daily', myday:true, note:true },
+    { id: 'scripture_m', name: 'Утреннее чтение Священного Писания', star:true, rep:'daily', myday:true },
+    { id: 'charge',      name: 'Утренние физические упражнения', min: true, star:true, rep:'daily', myday:true, note:true },
+    { id: 'tonic',       name: 'Утренний энергетический тоник', rep:'daily', myday:true },
+    { id: 'duha',        name: 'Duha', star:true, rep:'daily', myday:true },
+  ]},
+  { anchor: 'Тренировки мозга', time: 'День Сурка', color: '#3C5A6E', tasks: [
+    { id: 'wikium', name: 'Mind Training', rep:'daily' },
+  ]},
+  { anchor: 'Solah', time: 'Belief', color: '#1A4D4A', tasks: [
+    { id: 'dhuhr',   name: 'Midday salah', min: true, star:true, rep:'daily', myday:true },
+    { id: 'asr',     name: 'Afternoon salah', min: true, star:true, rep:'daily', myday:true },
+    { id: 'maghrib', name: 'Evening salah', min: true, star:true, rep:'daily', myday:true },
+    { id: 'isha',    name: 'Night salah', min: true, star:true, rep:'daily', myday:true },
+    { id: 'juma',    name: 'Friday Solah', days: [5], star:true, rep:'weekly' },
+  ]},
+  { anchor: 'Поминания', time: 'Belief', color: '#534AB7', tasks: [
+    { id: 'dhikr_m',   name: 'Утренние поминания' },
+    { id: 'dhikr_e',   name: 'Вечерние поминания' },
+    { id: 'dhikr_n',   name: 'Ночное поминания' },
+  ]},
+  { anchor: 'Духовное развитие', time: 'Belief', color: '#7A4FB7', tasks: [
+    { id: 'surah',     name: 'Заучивание сур', star:true },
+    { id: 'quran_fri', name: 'Пятничное чтение Корана', days: [5], star:true },
+  ]},
+  { anchor: 'Английский', time: 'Education', color: '#B5730E', tasks: [
+    { id: 'eng_pod',   name: 'Ежедневно прослушиваю подкасты на английском по 30 минут', rep:'daily', myday:true },
+    { id: 'eng_words', name: 'Ежедневно изучаю три новых слова на английском', star:true, rep:'daily', myday:true },
+  ]},
+  { anchor: 'Я здоров', time: 'Здоровье', color: '#B33A2F', tasks: [
+    { id: 'turnik', name: '2 минуты растягиваю позвоночник на турнике', star:true, rep:'daily', myday:true },
+    { id: 'train',  name: 'Еженедельные физические тренировки', star:true, rep:'weekly', myday:true },
+  ]},
+  { anchor: 'Новые привычки', time: 'Развитие', color: '#3C5A6E', tasks: [
+    { id: 'reade', name: 'Читаю полезные книги', rep:'daily', myday:true },
+    { id: 'sleep', name: 'Спокойной ночи', star:true, rep:'daily', myday:true },
+  ]},
+  { anchor: 'Режим и семья', time: 'добавлено мной', color: '#888780', tasks: [
+    { id: 'brk',    name: 'Завтрак вовремя' },
+    { id: 'lunch',  name: 'Обед вовремя' },
+    { id: 'dinner', name: 'Ужин вовремя' },
+    { id: 'family', name: 'Время с семьёй' },
+  ]},
+];
+
+const ALL_TASKS = BLOCKS.flatMap(b => b.tasks);
+const TASK_NAME = {}; ALL_TASKS.forEach(t => TASK_NAME[t.id] = t.name);
+const TOTAL = ALL_TASKS.length;
+const STORE = 'disciplina_v2';
+const OPEN_STORE = 'disciplina_open_v2';
+const HM_STORE = 'disciplina_habitmeta';
+
+function hmLoad(){ try{ return JSON.parse(localStorage.getItem(HM_STORE))||{}; }catch(e){ return {}; } }
+function hmSave(){ try{ localStorage.setItem(HM_STORE, JSON.stringify(HMETA)); }catch(e){} }
+let HMETA = hmLoad();
+function hget(t){
+  const base={ time:null, dur:null, star:!!t.star, rep:t.rep||null, days:t.days||null, note:'', min:!!t.min };
+  return Object.assign(base, HMETA[t.id]||{});
+}
+function hset(id, patch){ HMETA[id]=Object.assign({}, HMETA[id]||{}, patch); hmSave(); }
+function minIds(){ return ALL_TASKS.filter(t=>hget(t).min).map(t=>t.id); }
+
+function appliesOn(task, d){ const days=hget(task).days; return !days || days.includes(d.getDay()); }
+function dayTasks(d){ return ALL_TASKS.filter(t=>appliesOn(t,d)); }
+function dayTotal(d){ return dayTasks(d).length; }
+
+let view = new Date(); view.setHours(0,0,0,0);
+let hardMode = false;
+let openBlocks = loadOpen();
+
+function loadOpen() { try { return JSON.parse(localStorage.getItem(OPEN_STORE)) || {0:true}; } catch(e){ return {0:true}; } }
+function saveOpen() { try { localStorage.setItem(OPEN_STORE, JSON.stringify(openBlocks)); } catch(e){} }
+
+function load() { try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch (e) { return {}; } }
+function save(d) { try { localStorage.setItem(STORE, JSON.stringify(d)); } catch (e) {} }
+function keyOf(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function dayData(d) { return load()[keyOf(d)] || {}; }
+function doneCount(dd) { return Object.values(dd).filter(Boolean).length; }
+function minDone(dd) { return minIds().every(id => dd[id]); }
+function successful(d, dd) { if (doneCount(dd)===0) return false; const tot=dayTotal(d)||1; return minDone(dd) || (doneCount(dd)/tot)>=0.6; }
+function pctOf(d, dd) { const tot=dayTotal(d)||1; return Math.round(doneCount(dd)/tot*100); }
+
+function streakEnding(refToday) {
+  const all = load();
+  let cur = new Date(refToday); cur.setHours(0,0,0,0);
+  if (!successful(cur, all[keyOf(cur)]||{})) cur.setDate(cur.getDate()-1);
+  let n = 0;
+  for (let i=0;i<1000;i++){ if (successful(cur, all[keyOf(cur)]||{})){n++;cur.setDate(cur.getDate()-1);} else break; }
+  return n;
+}
+function computeRecords() {
+  const all = load(); const keys = Object.keys(all).sort();
+  let total=0,sum=0,best=0,run=0,prev=null;
+  keys.forEach(k=>{ const dd=all[k];
+    const d=new Date(k+'T00:00:00');
+    if(doneCount(dd)>0){total++;sum+=pctOf(d, dd);}
+    if(successful(d, dd)){ if(prev&&(d-prev)===86400000)run++;else run=1; if(run>best)best=run; prev=d; }
+    else{prev=null;run=0;}
+  });
+  return { total, best, avg: total?Math.round(sum/total):0 };
+}
+
+const RING_LEN = 2*Math.PI*34;
+const MONTHS=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const MONTHS_N=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const DOW=['вс','пн','вт','ср','чт','пт','сб'];
+const DOW_FULL=['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+
+function fmtMain(d){ return d.getDate()+' '+MONTHS[d.getMonth()]; }
+function fmtSub(d){ const t=new Date();t.setHours(0,0,0,0); const diff=Math.round((d-t)/86400000);
+  let p=''; if(diff===0)p='сегодня · '; else if(diff===-1)p='вчера · '; return p+DOW_FULL[d.getDay()]+', '+d.getFullYear(); }
+
+function toggle(id){ const all=load(); const k=keyOf(view); if(!all[k])all[k]={};
+  if(all[k][id])delete all[k][id]; else all[k][id]=true; save(all); renderDay(); }
+
+/* ---- habit edit modal ---- */
+let hbId=null;
+function hbTask(id){ return ALL_TASKS.find(t=>t.id===id); }
+function hbOpen(id){
+  hbId=id; const t=hbTask(id); if(!t) return; const hm=hget(t);
+  const dd=dayData(view); const dn=!!dd[id];
+  document.querySelector('#hbModal .tk-modal-card').classList.toggle('done',dn);
+  document.getElementById('hbTitle').textContent=t.name;
+  document.getElementById('hbStar').classList.toggle('on',!!hm.star);
+  document.getElementById('hbTime').value=hm.time||'';
+  document.getElementById('hbDur').value=hm.dur||'';
+  document.getElementById('hbRepeat').value=hm.rep||'';
+  document.getElementById('hbNote').value=hm.note||'';
+  const dayRow=document.getElementById('hbDayRow');
+  dayRow.style.display = hm.rep==='weekly' ? 'flex':'none';
+  document.getElementById('hbDay').value = (hm.days&&hm.days.length)?hm.days[0]:'5';
+  document.getElementById('hbMin').classList.toggle('on',!!hm.min);
+  document.getElementById('hbMinLbl').textContent = hm.min?'Это «минимум»':'Отметить как «минимум»';
+  document.getElementById('hbModal').classList.add('open');
+}
+function hbClose(){ document.getElementById('hbModal').classList.remove('open'); hbId=null; renderDay(); }
+
+document.getElementById('hbCheck').addEventListener('click',()=>{ if(!hbId)return; toggle(hbId); const dd=dayData(view); document.querySelector('#hbModal .tk-modal-card').classList.toggle('done',!!dd[hbId]); });
+document.getElementById('hbStar').addEventListener('click',()=>{ if(!hbId)return; const cur=hget(hbTask(hbId)).star; hset(hbId,{star:!cur}); document.getElementById('hbStar').classList.toggle('on',!cur); });
+document.getElementById('hbTime').addEventListener('change',e=>{ if(hbId) hset(hbId,{time:e.target.value||null}); });
+document.getElementById('hbDur').addEventListener('change',e=>{ if(hbId) hset(hbId,{dur:e.target.value?parseInt(e.target.value,10):null}); });
+document.getElementById('hbRepeat').addEventListener('change',e=>{ if(!hbId)return; const v=e.target.value||null; hset(hbId,{rep:v}); document.getElementById('hbDayRow').style.display = v==='weekly'?'flex':'none'; if(v!=='weekly'){ if(hget(hbTask(hbId)).days) hset(hbId,{days:null}); } else { hset(hbId,{days:[parseInt(document.getElementById('hbDay').value,10)]}); } });
+document.getElementById('hbDay').addEventListener('change',e=>{ if(hbId) hset(hbId,{days:[parseInt(e.target.value,10)]}); });
+document.getElementById('hbMin').addEventListener('click',()=>{ if(!hbId)return; const cur=hget(hbTask(hbId)).min; hset(hbId,{min:!cur}); document.getElementById('hbMin').classList.toggle('on',!cur); document.getElementById('hbMinLbl').textContent=(!cur)?'Это «минимум»':'Отметить как «минимум»'; });
+document.getElementById('hbNote').addEventListener('input',e=>{ if(hbId) hset(hbId,{note:e.target.value}); });
+document.getElementById('hbReset').addEventListener('click',()=>{ if(!hbId)return; if(confirm('Сбросить настройки этой привычки к стандартным?')){ delete HMETA[hbId]; hmSave(); hbClose(); } });
+document.getElementById('hbClose').addEventListener('click',hbClose);
+document.getElementById('hbModal').addEventListener('click',e=>{ if(e.target.id==='hbModal') hbClose(); });
+
+function renderDay(){
+  document.getElementById('dateMain').textContent=fmtMain(view);
+  document.getElementById('dateSub').textContent=fmtSub(view);
+  const today=new Date();today.setHours(0,0,0,0);
+  document.getElementById('next').disabled=(view.getTime()>=today.getTime());
+
+  const dd=dayData(view);
+  const blocksEl=document.getElementById('blocks'); blocksEl.innerHTML='';
+  BLOCKS.forEach((b,bi)=>{
+    let visTasks=b.tasks.filter(t=>appliesOn(t,view));
+    if(visTasks.length===0) return;
+    visTasks=visTasks.slice().sort((a,b)=>{ const ta=hget(a).time, tb=hget(b).time;
+      if(ta&&tb) return ta<tb?-1:(ta>tb?1:0); if(ta) return -1; if(tb) return 1; return 0; });
+    const total=visTasks.length; const done=visTasks.filter(t=>dd[t.id]).length;
+    const isOpen=!!openBlocks[bi];
+    const block=document.createElement('div'); block.className='block'+(isOpen?' open':'');
+    let h='<div class="bhead" data-bi="'+bi+'">'
+      +'<span class="bdot" style="background:'+b.color+'"></span>'
+      +'<span class="bnm">'+b.anchor+'</span><span class="btm">'+b.time+'</span>'
+      +'<span class="bprog">'+done+'/'+total+'</span>'
+      +'<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>';
+    h+='<div class="btasks">';
+    visTasks.forEach(t=>{ const hm=hget(t); const dn=!!dd[t.id]; const hide=hardMode&&!hm.min;
+      let meta='';
+      if(hm.time) meta+='<span class="m-time"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'+hm.time+(hm.dur?' · '+hm.dur+ ' мин':'')+'</span>';
+      const dueLbl = hm.days ? DOW[hm.days[0]] : ((hm.rep||t.myday)?'сегодня':'');
+      if(dueLbl) meta+='<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>'+dueLbl+'</span>';
+      if(hm.rep) meta+='<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/></svg>повтор</span>';
+      if(t.myday) meta+='<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>Мой день</span>';
+      if(hm.note) meta+='<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v12H7l-3 3z"/></svg></span>';
+      h+='<div class="task'+(dn?' done':'')+(hide?' hidden-soft':'')+'" data-id="'+t.id+'">'
+        +'<span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></span>'
+        +'<div class="nm-wrap"><div class="nm-line"><span class="nm">'+t.name+'</span>'+(hm.min?'<span class="min-tag">МИНИМУМ</span>':'')+'</div>'
+        +(meta?'<div class="hmeta">'+meta+'</div>':'')+'</div>'
+        +(hm.star?'<span class="hstar"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7 7 .5-5.5 4.5 2 7-6.5-4-6.5 4 2-7L2 9.5 9 9z"/></svg></span>':'')
+        +'</div>';
+    });
+    h+='</div>';
+    block.innerHTML=h; blocksEl.appendChild(block);
+  });
+  blocksEl.querySelectorAll('.bhead').forEach(el=>{
+    el.addEventListener('click',()=>{ const bi=el.dataset.bi; openBlocks[bi]=!openBlocks[bi]; saveOpen(); renderDay(); });
+  });
+  blocksEl.querySelectorAll('.task').forEach(el=>{
+    el.querySelector('.check').addEventListener('click',e=>{ e.stopPropagation(); toggle(el.dataset.id); });
+    el.addEventListener('click',()=>hbOpen(el.dataset.id));
+  });
+
+  const pct=pctOf(view, dd);
+  document.getElementById('pctNum').textContent=pct+'%';
+  document.getElementById('ringFill').style.strokeDashoffset=RING_LEN*(1-pct/100);
+  document.getElementById('streak').textContent=streakEnding(today);
+  const rec=computeRecords();
+  document.getElementById('total').textContent=rec.total;
+}
+
+function renderStats(){
+  const rec=computeRecords();
+  document.getElementById('bestStreak').textContent=rec.best;
+  document.getElementById('avgPct').textContent=rec.avg+'%';
+  drawLine(); drawBars(); renderCats(); renderWeek(); renderMonth();
+}
+
+function renderWeek(){
+  const today=new Date();today.setHours(0,0,0,0);
+  const week=document.getElementById('week'); week.innerHTML='';
+  const wd=new Date(today);wd.setDate(wd.getDate()-6);
+  for(let i=0;i<7;i++){ const ddi=dayData(wd); const c=doneCount(ddi); const p=pctOf(wd, ddi);
+    const cell=document.createElement('div'); cell.className='wd'+(wd.getTime()===today.getTime()?' today':'');
+    let bg=''; if(p>=80)bg='var(--teal-mid)'; else if(p>=50)bg='var(--teal-soft)';
+    if(bg)cell.style.background=bg; const tc=p>=80?'#fff':'var(--muted)';
+    cell.innerHTML='<span class="n" style="color:'+(p>=80?'rgba(255,255,255,.85)':'')+'">'+DOW[wd.getDay()]+'</span><span class="v" style="color:'+tc+'">'+(c>0?p+'%':'·')+'</span>';
+    week.appendChild(cell); wd.setDate(wd.getDate()+1);
+  }
+}
+
+function renderMonth(){
+  const y=view.getFullYear(),m=view.getMonth();
+  document.getElementById('monthTitle').textContent=MONTHS_N[m]+' '+y;
+  const head=document.getElementById('monthHead'); head.innerHTML='';
+  ['пн','вт','ср','чт','пт','сб','вс'].forEach(d=>{ const e=document.createElement('div');e.className='mhead';e.textContent=d;head.appendChild(e); });
+  const first=new Date(y,m,1); const startDow=(first.getDay()+6)%7; const daysIn=new Date(y,m+1,0).getDate();
+  const today=new Date();today.setHours(0,0,0,0);
+  const grid=document.getElementById('month'); grid.innerHTML='';
+  for(let i=0;i<startDow;i++){ const e=document.createElement('div');e.className='mc empty';grid.appendChild(e); }
+  for(let day=1;day<=daysIn;day++){ const d=new Date(y,m,day); const ddi=dayData(d); const c=doneCount(ddi); const p=pctOf(d, ddi);
+    const cell=document.createElement('div'); cell.className='mc';
+    let bg='var(--surface-2)'; if(c>0){ if(p>=80)bg='var(--teal-mid)'; else if(p>=50)bg='#7FBDB8'; else bg='var(--teal-soft)'; }
+    cell.style.background=bg; if(d>today)cell.style.opacity='0.35';
+    cell.innerHTML='<span class="dd" style="color:'+(p>=80?'rgba(255,255,255,.9)':'var(--hint)')+'">'+day+'</span>';
+    grid.appendChild(cell);
+  }
+}
+
+function renderCats(){
+  const today=new Date();today.setHours(0,0,0,0);
+  const counts={}, applic={}; ALL_TASKS.forEach(t=>{counts[t.id]=0; applic[t.id]=0;});
+  let activeDays=0;
+  for(let i=0;i<30;i++){ const d=new Date(today);d.setDate(d.getDate()-i); const dd=dayData(d);
+    if(doneCount(dd)>0){ activeDays++; ALL_TASKS.forEach(t=>{ if(appliesOn(t,d)){ applic[t.id]++; if(dd[t.id])counts[t.id]++; } }); } }
+  const list=document.getElementById('catList'); list.innerHTML='';
+  if(activeDays===0){ list.innerHTML='<div class="empty-state">Пока нет данных. Начни отмечать задачи.</div>'; return; }
+  const rows=ALL_TASKS.filter(t=>applic[t.id]>0).map(t=>({name:t.name, pct:Math.round(counts[t.id]/applic[t.id]*100)})).sort((a,b)=>a.pct-b.pct);
+  rows.forEach(r=>{ let col='var(--teal-mid)'; if(r.pct<40)col='var(--red)'; else if(r.pct<70)col='var(--amber)';
+    const row=document.createElement('div'); row.className='catrow';
+    row.innerHTML='<div class="cattop"><b>'+r.name+'</b><span class="v">'+r.pct+'%</span></div><div class="catbar"><i style="width:'+r.pct+'%;background:'+col+'"></i></div>';
+    list.appendChild(row);
+  });
+}
+
+function getColor(name){ const s=getComputedStyle(document.documentElement); return s.getPropertyValue(name).trim(); }
+
+function drawLine(){
+  const cv=document.getElementById('lineChart'); const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height,pad=30,padB=26;
+  ctx.clearRect(0,0,W,H);
+  const today=new Date();today.setHours(0,0,0,0);
+  const data=[];
+  for(let i=13;i>=0;i--){ const d=new Date(today);d.setDate(d.getDate()-i); data.push({d, p:pctOf(d, dayData(d))}); }
+  const teal=getColor('--teal-mid'), line=getColor('--line'), hint=getColor('--hint');
+  ctx.strokeStyle=line; ctx.lineWidth=1; ctx.fillStyle=hint; ctx.font='10px sans-serif';
+  [0,25,50,75,100].forEach(g=>{ const y=H-padB-(g/100)*(H-pad-padB); ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-8,y);ctx.stroke();
+    ctx.textAlign='right'; ctx.fillText(g+'',pad-4,y+3); });
+  const n=data.length; const stepX=(W-pad-12)/(n-1);
+  ctx.strokeStyle=teal; ctx.lineWidth=2; ctx.beginPath();
+  data.forEach((pt,i)=>{ const x=pad+i*stepX; const y=H-padB-(pt.p/100)*(H-pad-padB);
+    if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+  ctx.stroke();
+  ctx.fillStyle=teal;
+  data.forEach((pt,i)=>{ const x=pad+i*stepX; const y=H-padB-(pt.p/100)*(H-pad-padB);
+    ctx.beginPath();ctx.arc(x,y,2.5,0,7);ctx.fill(); });
+  ctx.fillStyle=hint; ctx.textAlign='center';
+  data.forEach((pt,i)=>{ if(i%2===0){ const x=pad+i*stepX; ctx.fillText(pt.d.getDate()+'',x,H-10); } });
+}
+
+function drawBars(){
+  const cv=document.getElementById('barChart'); const ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height,pad=30,padB=24;
+  ctx.clearRect(0,0,W,H);
+  const today=new Date();today.setHours(0,0,0,0);
+  const monday=new Date(today); monday.setDate(monday.getDate()-((today.getDay()+6)%7));
+  const weeks=[];
+  for(let w=7;w>=0;w--){ const ws=new Date(monday);ws.setDate(ws.getDate()-w*7); let sum=0,cnt=0;
+    for(let i=0;i<7;i++){ const d=new Date(ws);d.setDate(d.getDate()+i); const dd=dayData(d); if(doneCount(dd)>0){sum+=pctOf(d, dd);cnt++;} }
+    weeks.push({ label:ws.getDate()+'.'+(ws.getMonth()+1), avg:cnt?Math.round(sum/cnt):0 }); }
+  const teal=getColor('--teal-mid'), tealSoft=getColor('--teal-soft'), line=getColor('--line'), hint=getColor('--hint');
+  ctx.strokeStyle=line; ctx.lineWidth=1; ctx.fillStyle=hint; ctx.font='10px sans-serif';
+  [0,50,100].forEach(g=>{ const y=H-padB-(g/100)*(H-pad-padB); ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(W-8,y);ctx.stroke();
+    ctx.textAlign='right'; ctx.fillText(g+'',pad-4,y+3); });
+  const n=weeks.length; const slot=(W-pad-12)/n; const bw=slot*0.56;
+  weeks.forEach((wk,i)=>{ const x=pad+i*slot+(slot-bw)/2; const h=(wk.avg/100)*(H-pad-padB); const y=H-padB-h;
+    ctx.fillStyle = wk.avg>=70?teal : wk.avg>=40?getColor('--amber') : (wk.avg>0?getColor('--red'):tealSoft);
+    ctx.beginPath(); const r=3;
+    ctx.moveTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.lineTo(x+bw-r,y);ctx.arcTo(x+bw,y,x+bw,y+r,r);ctx.lineTo(x+bw,y+h);ctx.lineTo(x,y+h);ctx.closePath();ctx.fill();
+    ctx.fillStyle=hint; ctx.textAlign='center'; ctx.fillText(wk.label,x+bw/2,H-9);
+    if(wk.avg>0){ ctx.fillStyle=getColor('--muted'); ctx.fillText(wk.avg+'%',x+bw/2,y-4); }
+  });
+}
+
+function csvEscape(s){ s=String(s); if(s.includes(',')||s.includes('"')||s.includes('\n')) return '"'+s.replace(/"/g,'""')+'"'; return s; }
+function download(name, content, type){ const blob=new Blob(['\ufeff'+content],{type:type}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=name; a.click(); URL.revokeObjectURL(url); }
+
+function reportDay(d, fmt){
+  const dd=dayData(d); const p=pctOf(d, dd); const tot=dayTotal(d);
+  if(fmt==='csv'){ let rows=[['Дата','Блок','Задача','Выполнено']];
+    BLOCKS.forEach(b=>b.tasks.filter(t=>appliesOn(t,d)).forEach(t=>{ rows.push([keyOf(d),b.anchor,TASK_NAME[t.id],dd[t.id]?'да':'нет']); }));
+    rows.push([]); rows.push(['Итого','','',p+'%']);
+    return rows.map(r=>r.map(csvEscape).join(',')).join('\n');
+  }
+  let out='ОТЧЁТ ЗА ДЕНЬ — '+fmtMain(d)+' '+d.getFullYear()+'\n'+DOW_FULL[d.getDay()]+'\n\n';
+  BLOCKS.forEach(b=>{ const vt=b.tasks.filter(t=>appliesOn(t,d)); if(vt.length===0) return; out+='● '+b.anchor+' ('+b.time+')\n'; vt.forEach(t=>{ out+='   ['+(dd[t.id]?'X':' ')+'] '+TASK_NAME[t.id]+'\n'; }); out+='\n'; });
+  out+='---------------\nВыполнено: '+doneCount(dd)+' из '+tot+' ('+p+'%)\n';
+  out+='Серия на этот день: '+streakEnding(d)+' дн.\n';
+  return out;
+}
+
+function reportWeek(endD, fmt){
+  const days=[]; for(let i=6;i>=0;i--){ const d=new Date(endD);d.setDate(d.getDate()-i); days.push(d); }
+  let sum=0,cnt=0; days.forEach(d=>{ const dd=dayData(d); if(doneCount(dd)>0){sum+=pctOf(d, dd);cnt++;} });
+  const avg=cnt?Math.round(sum/cnt):0;
+  if(fmt==='csv'){ let rows=[['Дата','День','Выполнено задач','Процент','Успешный день']];
+    days.forEach(d=>{ const dd=dayData(d); rows.push([keyOf(d),DOW_FULL[d.getDay()],doneCount(dd)+'/'+dayTotal(d),pctOf(d, dd)+'%',successful(d, dd)?'да':'нет']); });
+    rows.push([]); rows.push(['Средний результат','','',avg+'%','']);
+    return rows.map(r=>r.map(csvEscape).join(',')).join('\n');
+  }
+  let out='ОТЧЁТ ЗА НЕДЕЛЮ\n'+fmtMain(days[0])+' — '+fmtMain(days[6])+' '+endD.getFullYear()+'\n\n';
+  days.forEach(d=>{ const dd=dayData(d); out+=DOW[d.getDay()]+' '+keyOf(d)+'  '+String(pctOf(d, dd)+'%').padStart(4)+'  '+doneCount(dd)+'/'+dayTotal(d)+(successful(d, dd)?'  +':'')+'\n'; });
+  out+='\n---------------\nСредний результат: '+avg+'%\nУспешных дней: '+days.filter(d=>successful(d, dayData(d))).length+' из 7\n';
+  return out;
+}
+
+function reportMonth(refD, fmt){
+  const y=refD.getFullYear(),m=refD.getMonth(); const daysIn=new Date(y,m+1,0).getDate();
+  const counts={}, applic={}; ALL_TASKS.forEach(t=>{counts[t.id]=0; applic[t.id]=0;}); let sum=0,active=0,succ=0;
+  const rowsDay=[];
+  for(let day=1;day<=daysIn;day++){ const d=new Date(y,m,day); const dd=dayData(d); const c=doneCount(dd);
+    rowsDay.push({d, c, p:pctOf(d, dd), ok:successful(d, dd)});
+    if(c>0){active++; sum+=pctOf(d, dd); if(successful(d, dd))succ++; ALL_TASKS.forEach(t=>{ if(appliesOn(t,d)){ applic[t.id]++; if(dd[t.id])counts[t.id]++; } }); } }
+  const avg=active?Math.round(sum/active):0;
+  if(fmt==='csv'){ let rows=[['Дата','Выполнено','Процент','Успешный']];
+    rowsDay.forEach(r=>rows.push([keyOf(r.d),r.c+'/'+dayTotal(r.d),r.p+'%',r.ok?'да':'нет']));
+    rows.push([]); rows.push(['Привычка','Выполнено дней','из применимых','%']);
+    ALL_TASKS.forEach(t=>rows.push([TASK_NAME[t.id],counts[t.id],applic[t.id],applic[t.id]?Math.round(counts[t.id]/applic[t.id]*100)+'%':'—']));
+    rows.push([]); rows.push(['Средний результат','','',avg+'%']); rows.push(['Активных дней','',active,'']); rows.push(['Успешных дней','',succ,'']);
+    return rows.map(r=>r.map(csvEscape).join(',')).join('\n');
+  }
+  let out='ОТЧЁТ ЗА МЕСЯЦ — '+MONTHS_N[m]+' '+y+'\n\n';
+  out+='Средний результат: '+avg+'%\nАктивных дней: '+active+' из '+daysIn+'\nУспешных дней: '+succ+'\n\n';
+  out+='ПО ПРИВЫЧКАМ (% от применимых дней):\n';
+  ALL_TASKS.filter(t=>applic[t.id]>0).map(t=>({n:TASK_NAME[t.id],p:Math.round(counts[t.id]/applic[t.id]*100)})).sort((a,b)=>b.p-a.p)
+    .forEach(r=>{ out+='   '+String(r.p+'%').padStart(4)+'  '+r.n+'\n'; });
+  return out;
+}
+
+function curFmt(){ return document.querySelector('input[name="fmt"]:checked').value; }
+
+function runReport(type){
+  const fmt=curFmt(); const ext=fmt==='csv'?'csv':'txt'; const mime=fmt==='csv'?'text/csv':'text/plain';
+  let content, name;
+  if(type==='day'){ content=reportDay(view,fmt); name='otchet-den-'+keyOf(view)+'.'+ext; }
+  else if(type==='week'){ content=reportWeek(view,fmt); name='otchet-nedelya-'+keyOf(view)+'.'+ext; }
+  else { content=reportMonth(view,fmt); name='otchet-mesyac-'+(view.getFullYear())+'-'+String(view.getMonth()+1).padStart(2,'0')+'.'+ext; }
+  download(name, content, mime+';charset=utf-8');
+}
+
+document.querySelectorAll('.tabs button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='stats') renderStats();
+    if(btn.dataset.tab==='tasks') tkRender();
+  });
+});
+
+document.getElementById('prev').addEventListener('click',()=>{ view.setDate(view.getDate()-1); renderDay(); });
+document.getElementById('next').addEventListener('click',()=>{ const t=new Date();t.setHours(0,0,0,0);
+  if(view.getTime()<t.getTime()){view.setDate(view.getDate()+1);renderDay();} });
+document.getElementById('todayBtn').addEventListener('click',()=>{ view=new Date();view.setHours(0,0,0,0); renderDay();
+  if(document.getElementById('view-stats').classList.contains('active'))renderStats(); });
+document.getElementById('hardToggle').addEventListener('change',e=>{ hardMode=e.target.checked; renderDay(); });
+document.getElementById('resetBtn').addEventListener('click',()=>{ if(confirm('Сбросить отметки за '+fmtMain(view)+'?')){ const all=load();delete all[keyOf(view)];save(all);renderDay(); } });
+document.getElementById('expandAll').addEventListener('click',()=>{ BLOCKS.forEach((b,i)=>openBlocks[i]=true); saveOpen(); renderDay(); });
+document.getElementById('collapseAll').addEventListener('click',()=>{ openBlocks={}; saveOpen(); renderDay(); });
+document.querySelectorAll('.rep-btn').forEach(b=>b.addEventListener('click',()=>runReport(b.dataset.report)));
+document.getElementById('exportAll').addEventListener('click',()=>{ download('disciplina-backup-'+keyOf(new Date())+'.json', localStorage.getItem(STORE)||'{}','application/json'); });
+
+/* ================= TASKS MODULE (To Do) ================= */
+const TK_STORE='disciplina_tasks_v3';
+function tkLoad(){ try{ return JSON.parse(localStorage.getItem(TK_STORE)); }catch(e){ return null; } }
+function tkPersist(){ try{ localStorage.setItem(TK_STORE, JSON.stringify(TK)); }catch(e){} }
+function tkUid(){ return 'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function todayKey(){ const d=new Date(); d.setHours(0,0,0,0); return keyOf(d); }
+
+function tkSeed(){
+  const T=todayKey();
+  const FRI='2026-06-26', TUE23='2026-06-23', THU25='2026-06-25', TUE30='2026-06-30';
+  const groups=[
+    {id:'g_family',name:'Семья'},
+    {id:'g_edu',name:'Education'},
+    {id:'g_health',name:'Здоровье'},
+    {id:'g_fin',name:'Finance'},
+    {id:'g_dev',name:'Развитие'},
+    {id:'g_need',name:'Необходимость'},
+    {id:'g_goals',name:'ЦЕЛИ'},
+  ];
+  const lists=[
+    {id:'l_farzona',name:'Фарзона',groupId:'g_family'},
+    {id:'l_hasan',name:'Хасан',groupId:'g_family'},
+    {id:'l_husayn',name:'Хусейн',groupId:'g_family'},
+    {id:'l_ismoil',name:'Исмаил',groupId:'g_family'},
+    {id:'l_biesh',name:'Биеш',groupId:'g_family'},
+    {id:'l_team',name:'Командная работа',groupId:'g_family'},
+    {id:'l_chedu',name:'Обучение детей',groupId:'g_edu'},
+    {id:'l_eng',name:'Английский на отлично',groupId:'g_edu'},
+    {id:'l_health',name:'Я здоров',groupId:'g_health'},
+    {id:'l_finlit',name:'Финансовая грамотность',groupId:'g_fin'},
+    {id:'l_lider',name:'I am a Lider',groupId:'g_dev'},
+    {id:'l_spirit',name:'Духовность',groupId:'g_dev'},
+    {id:'l_newhab',name:'Новые привычки',groupId:'g_dev'},
+    {id:'l_house',name:'Жилплощадь увеличена',groupId:'g_need'},
+    {id:'l_goals',name:'Цели',groupId:'g_goals'},
+  ];
+  let n=0;
+  const mk=(listId,title,o)=>{ o=o||{}; n++; return { id:'s'+n, listId, title, done:false, doneAt:null,
+    star:!!o.s, myDay:o.my?T:null, due:o.due||null, repeat:o.rep||'none', note:o.note||'',
+    steps:(o.st||[]).map(x=>({title:x,done:false})), remindAt:null, log:[], createdAt:Date.now()-n*1000 }; };
+  const tasks=[
+    mk('l_farzona','Время Фарзоны',{due:TUE23,rep:'weekly',s:1,st:['Общаемся на тему целей жизни, планирования и распределения времени','Общение на тему духовности, веры']}),
+    mk('l_hasan','Время Хасана',{due:'2023-05-17',s:1}),
+    mk('l_husayn','Время Хусейна',{due:THU25,rep:'weekly',s:1}),
+    mk('l_ismoil','Время Исмоила',{due:FRI,rep:'weekly',s:1}),
+    mk('l_biesh','Время Ситоры',{}),
+    mk('l_biesh','Открыли свой торговый бизнес',{my:1,due:T,st:['Составить бизнес-стратегию и бизнес-план по продаже одежды для Ситоры']}),
+    mk('l_team','Тема общения на сегодня с детьми',{st:['Где я и чем занимаюсь в декабре 2024 — планы и желания','Привлекал ли я родителей и близких людей?','Имеются ли риски, которые могут помешать?','Если привлекал — подчеркнуть, что могут и не согласиться помочь','Начать 2-ю тему «Воспитанность»','Как вы считаете, вы воспитаны?','Пример очень плохого воспитания — в сравнении вы воспитаны','Пример хорошего воспитания — «вам есть куда расти»','Рекомендовать главу о воспитанности из книги «Мир души»']}),
+    mk('l_team','FoxFord',{due:'2023-06-01',s:1,st:['Открытый урок «Как выбрать профессию в 9–11 классе»','Вебинар на тему «Лидерство»','Открытый урок «Профессии будущего»']}),
+    mk('l_team','Тема «Поведение, слова и мысли определяют, кто ты на самом деле»',{s:1,st:['Собрать материал про добрый нрав (притча про истинного мусульманина)','Визуализировать в виде презентации','Договориться о времени и провести встречу','Цель: поведение детей полно любви и гармонии']}),
+    mk('l_team','Тема «Что такое переходный возраст и как его переживают подростки»',{s:1,st:['Собрать материал и визуализировать в презентации','Договориться о времени и провести встречу','Цель: осознанность переходного возраста и готовность преодолевать трудности']}),
+    mk('l_chedu','Обучение по финансовой грамотности',{}),
+    mk('l_chedu','Обучение детей зарубежом',{my:1,due:T,s:1,st:['Мониторинг ресурса Мультикид','edu-cip.tj/ru/faqs','Проекты Россотрудничества по обучению в России','Статьи Азия-плюс по учебным ресурсам за рубежом']}),
+    mk('l_chedu','Обучение детей программированию и ИТ',{st:['Научить детей вайб-кодингу']}),
+    mk('l_eng','Изучение английского языка',{st:['Пройти все 16 уроков полиглота','Составить словарь слов с произношением']}),
+    mk('l_health','Я здоров телом, душой и разумом!',{due:TUE30,s:1,st:['Вылечился от полипов в носу','Восстановлено зрение на отлично','Найти хорошего диетолога','Хороший дерматолог — консультация']}),
+    mk('l_finlit','Семейный бюджет',{}),
+    mk('l_finlit','Бизнес проекты',{st:['Составить бизнес-план по швейному делу','Стратегия и бизнес-план по услугам ЖКХ']}),
+    mk('l_lider','Книги',{s:1,st:['Составить список книг для чтения','Составить список книг для приобретения','Ежедневное чтение по 10 страниц','Договориться с kitobz о покупке книг в рассрочку']}),
+    mk('l_lider','Идей',{my:1,due:T,rep:'daily'}),
+    mk('l_spirit','Поддержание родственных уз',{st:['Список номеров всех близких родственников','Распределение звонков родным два раза в неделю']}),
+    mk('l_spirit','Искренняя дружба',{st:['Список номеров телефонов для звонков друзьям','График ежемесячных звонков друзьям']}),
+    mk('l_newhab','По дороге на работу слушаю до 15 мин аудиоматериала',{st:['Список полезных аудиокниг','Программа со скачанными аудиокнигами']}),
+    mk('l_house','Построил дом',{due:'2023-05-27',st:['Нашёл земельный участок до 5 соток в подходящем районе']}),
+    mk('l_goals','Свободно общаюсь на китайском языке',{}),
+    mk('l_goals','Свободно общаюсь на английском языке',{}),
+    mk('l_goals','Проект «Швейный центр»',{st:['Составить стратегию и бизнес-план проекта швейного дела']}),
+  ];
+  return { groups, lists, tasks, sel:'myday', gcol:{} };
+}
+
+let TK = tkLoad();
+if(!TK || !TK.lists){ TK = tkSeed(); tkPersist(); }
+if(!TK.sel) TK.sel='myday';
+if(!TK.groups) TK.groups=[];
+if(!TK.gcol) TK.gcol={};
+let tkModalId=null;
+
+const SMART=[
+  {id:'myday', name:'Мой день'},
+  {id:'important', name:'Важно'},
+  {id:'planned', name:'Запланировано'},
+  {id:'all', name:'Все задачи'},
+];
+function tkListName(id){ const s=SMART.find(x=>x.id===id); if(s) return s.name; const l=TK.lists.find(x=>x.id===id); return l?l.name:'Список'; }
+
+function tkBelongs(t, sel){
+  if(t===null) return false;
+  if(sel==='myday') return t.myDay===todayKey();
+  if(sel==='important') return !!t.star;
+  if(sel==='planned') return !!t.due;
+  if(sel==='all') return true;
+  return t.listId===sel;
+}
+
+function tkParseDate(s){ return s? new Date(s+'T00:00:00') : null; }
+function tkFmtDue(s){
+  if(!s) return '';
+  const d=tkParseDate(s); const t=new Date(); t.setHours(0,0,0,0);
+  const diff=Math.round((d-t)/86400000);
+  if(diff===0) return 'сегодня';
+  if(diff===1) return 'завтра';
+  if(diff===-1) return 'вчера';
+  return d.getDate()+' '+MONTHS[d.getMonth()];
+}
+function tkIsOverdue(t){ if(!t.due||t.done) return false; const d=tkParseDate(t.due); const today=new Date();today.setHours(0,0,0,0); return d<today; }
+
+function tkNextDue(s, repeat){
+  const d=tkParseDate(s)||new Date(); d.setHours(0,0,0,0);
+  if(repeat==='daily') d.setDate(d.getDate()+1);
+  else if(repeat==='weekly') d.setDate(d.getDate()+7);
+  else if(repeat==='monthly') d.setMonth(d.getMonth()+1);
+  else if(repeat==='weekdays'){ do{ d.setDate(d.getDate()+1); }while(d.getDay()===0||d.getDay()===6); }
+  return keyOf(d);
+}
+
+function tkAddTask(title){
+  title=title.trim(); if(!title) return;
+  const sel=TK.sel;
+  let listId = (SMART.some(s=>s.id===sel)) ? (TK.lists[0]?TK.lists[0].id:null) : sel;
+  const t={ id:tkUid(), listId, title, done:false, doneAt:null, star:(sel==='important'),
+    myDay:(sel==='myday'?todayKey():null), due:(sel==='planned'?todayKey():null),
+    repeat:'none', note:'', steps:[], remindAt:null, createdAt:Date.now(), log:[] };
+  TK.tasks.unshift(t); tkPersist(); tkRender();
+}
+
+function tkToggle(id){
+  const t=TK.tasks.find(x=>x.id===id); if(!t) return;
+  if(!t.done && t.repeat!=='none'){
+    // recurring: log completion, advance, stay active
+    t.log = t.log||[]; t.log.push(todayKey());
+    t.due = tkNextDue(t.due||todayKey(), t.repeat);
+    t.steps.forEach(s=>s.done=false);
+  } else {
+    t.done=!t.done; t.doneAt = t.done? Date.now():null;
+  }
+  tkPersist(); tkRender();
+}
+function tkToggleStar(id){ const t=TK.tasks.find(x=>x.id===id); if(!t)return; t.star=!t.star; tkPersist(); tkRender(); }
+
+function tkTaskRow(t){
+  const row=document.createElement('div'); row.className='tk-task'+(t.done?' done':'');
+  const stepsTotal=t.steps.length, stepsDone=t.steps.filter(s=>s.done).length;
+  let meta='';
+  if(t.time) meta+='<span class="m-time"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'+t.time+(t.dur?' · '+t.dur+' мин':'')+'</span>';
+  if(t.due) meta+='<span class="'+(tkIsOverdue(t)?'over':'')+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>'+tkFmtDue(t.due)+'</span>';
+  if(t.repeat&&t.repeat!=='none') meta+='<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/></svg>повтор</span>';
+  if(stepsTotal) meta+='<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>'+stepsDone+'/'+stepsTotal+'</span>';
+  if(t.remindAt) meta+='<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg></span>';
+  if(t.note) meta+='<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v12H7l-3 3z"/></svg></span>';
+  if(t.myDay===todayKey() && TK.sel!=='myday') meta+='<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 3v1M12 20v1M4 12H3M21 12h-1"/></svg></span>';
+  row.innerHTML='<div class="tk-cb"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></div>'
+    +'<div class="tk-main"><div class="tk-ttl">'+tkEsc(t.title)+'</div>'+(meta?'<div class="tk-meta">'+meta+'</div>':'')+'</div>'
+    +'<button class="tk-star'+(t.star?' on':'')+'"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7 7 .5-5.5 4.5 2 7-6.5-4-6.5 4 2-7L2 9.5 9 9z"/></svg></button>';
+  row.querySelector('.tk-cb').addEventListener('click',e=>{ e.stopPropagation(); tkToggle(t.id); });
+  row.querySelector('.tk-star').addEventListener('click',e=>{ e.stopPropagation(); tkToggleStar(t.id); });
+  row.addEventListener('click',()=>tkOpen(t.id));
+  return row;
+}
+function tkEsc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function tkRender(){
+  document.getElementById('tkTitle').textContent=tkListName(TK.sel);
+  // chips: smart lists + lists drawer button
+  const chips=document.getElementById('tkChips'); chips.innerHTML='';
+  const mk=(id,name)=>{ const active=TK.sel===id; let cnt=TK.tasks.filter(t=>!t.done&&tkBelongs(t,id)).length;
+    const c=document.createElement('div'); c.className='tk-chip'+(active?' active':'');
+    c.innerHTML=tkEsc(name)+(cnt?' <span class="cnt">'+cnt+'</span>':'');
+    c.addEventListener('click',()=>{ TK.sel=id; tkPersist(); tkRender(); }); chips.appendChild(c); };
+  SMART.forEach(s=>mk(s.id,s.name));
+  const isList = TK.lists.some(l=>l.id===TK.sel);
+  const lb=document.createElement('div'); lb.className='tk-chip listsbtn'+(isList?' active':'');
+  lb.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> '+(isList?tkEsc(tkListName(TK.sel)):'Списки');
+  lb.addEventListener('click',tkOpenDrawer); chips.appendChild(lb);
+
+  // sub label
+  document.getElementById('tkSub').textContent = (TK.sel==='myday')? (new Date()).getDate()+' '+MONTHS[(new Date()).getMonth()] : '';
+
+  // summary
+  const today=todayKey();
+  const doneToday=TK.tasks.filter(t=>t.done&&t.doneAt&&keyOf(new Date(t.doneAt))===today).length
+                 + TK.tasks.reduce((a,t)=>a+((t.log||[]).filter(x=>x===today).length),0);
+  const overdue=TK.tasks.filter(t=>tkIsOverdue(t)).length;
+  const active=TK.tasks.filter(t=>!t.done).length;
+  const sum=document.getElementById('tkSummary');
+  sum.innerHTML='<div class="tk-sum"><div class="n">'+doneToday+'</div><div class="l">сделано сегодня</div></div>'
+    +'<div class="tk-sum"><div class="n'+(overdue?' warn':'')+'">'+overdue+'</div><div class="l">просрочено</div></div>'
+    +'<div class="tk-sum"><div class="n">'+active+'</div><div class="l">активных</div></div>';
+
+  // tasks
+  const list=TK.tasks.filter(t=>tkBelongs(t,TK.sel));
+  const activeList=list.filter(t=>!t.done).sort((a,b)=>{
+    if(a.time&&b.time && a.time!==b.time) return a.time<b.time?-1:1;
+    if(a.time&&!b.time) return -1; if(!a.time&&b.time) return 1;
+    const ao=tkIsOverdue(a)?0:1, bo=tkIsOverdue(b)?0:1; if(ao!==bo)return ao-bo;
+    if(a.due&&b.due) return a.due<b.due?-1:1; if(a.due)return -1; if(b.due)return 1; return b.createdAt-a.createdAt; });
+  const doneList=list.filter(t=>t.done).sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));
+  const cont=document.getElementById('tkTasks'); cont.innerHTML='';
+  if(activeList.length===0 && doneList.length===0){
+    cont.innerHTML='<div class="tk-empty">Здесь пока нет задач.<br>Добавь первую внизу.</div>';
+  } else {
+    activeList.forEach(t=>cont.appendChild(tkTaskRow(t)));
+  }
+  // completed
+  const cw=document.getElementById('tkCompWrap'); cw.innerHTML='';
+  if(doneList.length){
+    const collapsed = TK._compCollapsed;
+    const head=document.createElement('div'); head.className='tk-comp-head'+(collapsed?' collapsed':'');
+    head.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>Выполнено ('+doneList.length+')';
+    head.addEventListener('click',()=>{ TK._compCollapsed=!TK._compCollapsed; tkRender(); });
+    cw.appendChild(head);
+    if(!collapsed){ const dl=document.createElement('div'); dl.className='tk-comp-list';
+      doneList.forEach(t=>dl.appendChild(tkTaskRow(t))); cw.appendChild(dl); }
+  }
+}
+
+function tkAddList(){
+  const name=prompt('Название нового списка:'); if(!name||!name.trim()) return;
+  const id='l_'+tkUid(); TK.lists.push({id,name:name.trim(),groupId:null}); TK.sel=id; tkPersist(); tkRenderDrawer(); tkRender();
+}
+function tkAddGroup(){
+  const name=prompt('Название новой группы:'); if(!name||!name.trim()) return;
+  TK.groups.push({id:'g_'+tkUid(),name:name.trim()}); tkPersist(); tkRenderDrawer();
+}
+
+/* ---- lists drawer ---- */
+function tkOpenDrawer(){ tkRenderDrawer(); document.getElementById('tkDrawer').classList.add('open'); }
+function tkCloseDrawer(){ document.getElementById('tkDrawer').classList.remove('open'); }
+function tkCountList(id){ return TK.tasks.filter(t=>!t.done && t.listId===id).length; }
+function tkSelectList(id){ TK.sel=id; tkPersist(); tkCloseDrawer(); tkRender(); }
+
+function tkRenderDrawer(){
+  const body=document.getElementById('tkDrawerBody'); body.innerHTML='';
+  const smartIcons={ myday:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/>',
+    important:'<path d="M12 2l3 7 7 .5-5.5 4.5 2 7-6.5-4-6.5 4 2-7L2 9.5 9 9z"/>',
+    planned:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    all:'<path d="M4 5h16M4 12h16M4 19h16"/>' };
+  const sm=document.createElement('div'); sm.className='tk-d-smart';
+  SMART.forEach(s=>{ const cnt=TK.tasks.filter(t=>!t.done&&tkBelongs(t,s.id)).length;
+    const it=document.createElement('div'); it.className='tk-d-item'+(TK.sel===s.id?' active':'');
+    it.innerHTML='<span class="di"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'+smartIcons[s.id]+'</svg></span><span class="nm">'+s.name+'</span>'+(cnt?'<span class="cnt">'+cnt+'</span>':'');
+    it.addEventListener('click',()=>tkSelectList(s.id)); sm.appendChild(it); });
+  body.appendChild(sm);
+  body.appendChild(Object.assign(document.createElement('div'),{className:'tk-d-sep'}));
+
+  const renderListItem=(l)=>{ const cnt=tkCountList(l.id);
+    const it=document.createElement('div'); it.className='tk-d-item'+(TK.sel===l.id?' active':'');
+    it.innerHTML='<span class="di"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span><span class="nm">'+tkEsc(l.name)+'</span>'+(cnt?'<span class="cnt">'+cnt+'</span>':'');
+    it.addEventListener('click',()=>tkSelectList(l.id)); return it; };
+
+  // ungrouped lists first
+  TK.lists.filter(l=>!l.groupId).forEach(l=>body.appendChild(renderListItem(l)));
+
+  // groups
+  TK.groups.forEach(g=>{
+    const gl=TK.lists.filter(l=>l.groupId===g.id);
+    const wrap=document.createElement('div'); wrap.className='tk-d-group';
+    const collapsed=!!TK.gcol[g.id];
+    const head=document.createElement('div'); head.className='tk-d-ghead'+(collapsed?' collapsed':'');
+    head.innerHTML='<svg class="gchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg><span class="gn">'+tkEsc(g.name)+'</span>';
+    head.addEventListener('click',()=>{ TK.gcol[g.id]=!TK.gcol[g.id]; tkPersist(); tkRenderDrawer(); });
+    wrap.appendChild(head);
+    if(!collapsed){ const lc=document.createElement('div'); lc.className='tk-d-glist';
+      gl.forEach(l=>lc.appendChild(renderListItem(l))); wrap.appendChild(lc); }
+    body.appendChild(wrap);
+  });
+}
+
+document.getElementById('tkDrawerClose').addEventListener('click',tkCloseDrawer);
+document.getElementById('tkDrawer').addEventListener('click',e=>{ if(e.target.id==='tkDrawer') tkCloseDrawer(); });
+document.getElementById('tkAddGroupBtn').addEventListener('click',tkAddGroup);
+document.getElementById('tkAddListBtn').addEventListener('click',tkAddList);
+
+/* ---- modal ---- */
+function tkOpen(id){
+  tkModalId=id; const t=TK.tasks.find(x=>x.id===id); if(!t) return;
+  const card=document.querySelector('.tk-modal-card');
+  card.classList.toggle('done',t.done);
+  document.getElementById('tkmTitle').value=t.title;
+  document.getElementById('tkmStar').classList.toggle('on',!!t.star);
+  const myOn=t.myDay===todayKey();
+  const myRow=document.getElementById('tkmMyday'); myRow.classList.toggle('on',myOn);
+  document.getElementById('tkmMydayLbl').textContent= myOn?'В «Моём дне»':'Добавить в «Мой день»';
+  document.getElementById('tkmTime').value=t.time||'';
+  document.getElementById('tkmDur').value=t.dur||'';
+  document.getElementById('tkmDue').value=t.due||'';
+  document.getElementById('tkmRepeat').value=t.repeat||'none';
+  document.getElementById('tkmRemind').value=t.remindAt||'';
+  document.getElementById('tkmNote').value=t.note||'';
+  const sel=document.getElementById('tkmList'); sel.innerHTML='';
+  TK.lists.forEach(l=>{ const o=document.createElement('option'); o.value=l.id; o.textContent=l.name; if(l.id===t.listId)o.selected=true; sel.appendChild(o); });
+  tkRenderSteps(t);
+  document.getElementById('tkModal').classList.add('open');
+}
+function tkRenderSteps(t){
+  const box=document.getElementById('tkmSteps'); box.innerHTML='';
+  t.steps.forEach((s,i)=>{ const row=document.createElement('div'); row.className='tk-step'+(s.done?' done':'');
+    row.innerHTML='<div class="tk-step-cb"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></div><div class="s-txt">'+tkEsc(s.title)+'</div><button class="s-del">×</button>';
+    row.querySelector('.tk-step-cb').addEventListener('click',()=>{ s.done=!s.done; tkPersist(); tkRenderSteps(t); });
+    row.querySelector('.s-del').addEventListener('click',()=>{ t.steps.splice(i,1); tkPersist(); tkRenderSteps(t); });
+    box.appendChild(row); });
+}
+function tkCurrent(){ return TK.tasks.find(x=>x.id===tkModalId); }
+function tkCloseModal(){ document.getElementById('tkModal').classList.remove('open'); tkModalId=null; tkRender(); }
+
+document.getElementById('tkAddBtn').addEventListener('click',()=>{ const i=document.getElementById('tkInput'); tkAddTask(i.value); i.value=''; i.focus(); });
+document.getElementById('tkInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){ tkAddTask(e.target.value); e.target.value=''; } });
+
+document.getElementById('tkmTitle').addEventListener('input',e=>{ const t=tkCurrent(); if(t){ t.title=e.target.value; tkPersist(); } });
+document.getElementById('tkmStar').addEventListener('click',()=>{ const t=tkCurrent(); if(!t)return; t.star=!t.star; document.getElementById('tkmStar').classList.toggle('on',t.star); tkPersist(); });
+document.getElementById('tkmCheck').addEventListener('click',()=>{ const t=tkCurrent(); if(!t)return; tkToggle(t.id); document.querySelector('.tk-modal-card').classList.toggle('done',t.done); });
+document.getElementById('tkmMyday').addEventListener('click',()=>{ const t=tkCurrent(); if(!t)return; t.myDay = (t.myDay===todayKey())?null:todayKey(); const on=t.myDay===todayKey(); document.getElementById('tkmMyday').classList.toggle('on',on); document.getElementById('tkmMydayLbl').textContent=on?'В «Моём дне»':'Добавить в «Мой день»'; tkPersist(); });
+document.getElementById('tkmDue').addEventListener('change',e=>{ const t=tkCurrent(); if(t){ t.due=e.target.value||null; tkPersist(); } });
+document.getElementById('tkmTime').addEventListener('change',e=>{ const t=tkCurrent(); if(t){ t.time=e.target.value||null; tkPersist(); } });
+document.getElementById('tkmDur').addEventListener('change',e=>{ const t=tkCurrent(); if(t){ t.dur=e.target.value?parseInt(e.target.value,10):null; tkPersist(); } });
+document.getElementById('tkmRepeat').addEventListener('change',e=>{ const t=tkCurrent(); if(t){ t.repeat=e.target.value; if(t.repeat!=='none'&&!t.due)t.due=todayKey(); document.getElementById('tkmDue').value=t.due||''; tkPersist(); } });
+document.getElementById('tkmRemind').addEventListener('change',e=>{ const t=tkCurrent(); if(t){ t.remindAt=e.target.value||null; tkPersist(); if(t.remindAt) tkRequestNotify(); tkScheduleAll(); } });
+document.getElementById('tkmList').addEventListener('change',e=>{ const t=tkCurrent(); if(t){ t.listId=e.target.value; tkPersist(); } });
+document.getElementById('tkmNote').addEventListener('input',e=>{ const t=tkCurrent(); if(t){ t.note=e.target.value; tkPersist(); } });
+document.getElementById('tkmStepAdd').addEventListener('click',()=>{ const t=tkCurrent(); const inp=document.getElementById('tkmStepInput'); if(t&&inp.value.trim()){ t.steps.push({title:inp.value.trim(),done:false}); inp.value=''; tkPersist(); tkRenderSteps(t); } });
+document.getElementById('tkmStepInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){ const t=tkCurrent(); if(t&&e.target.value.trim()){ t.steps.push({title:e.target.value.trim(),done:false}); e.target.value=''; tkPersist(); tkRenderSteps(t); } } });
+document.getElementById('tkmDelete').addEventListener('click',()=>{ const t=tkCurrent(); if(!t)return; if(confirm('Удалить задачу?')){ TK.tasks=TK.tasks.filter(x=>x.id!==t.id); tkPersist(); tkCloseModal(); } });
+document.getElementById('tkmClose').addEventListener('click',tkCloseModal);
+document.getElementById('tkModal').addEventListener('click',e=>{ if(e.target.id==='tkModal') tkCloseModal(); });
+
+/* reminders (best-effort, only while app open) */
+let tkTimers=[];
+function tkRequestNotify(){ if('Notification' in window && Notification.permission==='default'){ Notification.requestPermission(); } }
+function tkScheduleAll(){
+  tkTimers.forEach(clearTimeout); tkTimers=[];
+  if(!('Notification' in window)) return;
+  const now=Date.now();
+  TK.tasks.forEach(t=>{ if(t.remindAt && !t.done){ const ts=new Date(t.remindAt).getTime();
+    if(ts>now && ts-now < 86400000){ tkTimers.push(setTimeout(()=>{ try{ if(Notification.permission==='granted') new Notification('Задача',{body:t.title}); }catch(e){} }, ts-now)); } } });
+}
+tkRequestNotify(); tkScheduleAll();
+
+renderDay();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+</script>
+</body>
+</html>
