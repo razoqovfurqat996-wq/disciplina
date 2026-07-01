@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#1A4D4A">
+<meta name="theme-color" content="#12A5B5">
 <title>Дисциплина — ежедневный путь</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
@@ -13,38 +13,24 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
   :root {
-    --bg: #EEF0F1;
+    --bg: #EDF3F4;
     --surface: #FFFFFF;
-    --surface-2: #F4F6F7;
-    --ink: #1C2B2A;
-    --muted: #5C6B6A;
-    --hint: #93A0A0;
-    --line: #DCE2E2;
-    --line-strong: #C5CFCF;
-    --teal: #1A4D4A;
-    --teal-mid: #2E7D78;
-    --teal-bright: #3FA09A;
-    --teal-soft: #E2EDEC;
-    --steel: #3C5A6E;
+    --surface-2: #F2F8F8;
+    --ink: #14302F;
+    --muted: #5A6B6B;
+    --hint: #95A4A4;
+    --line: #DBE7E7;
+    --line-strong: #C3D3D3;
+    --teal: #067A87;
+    --teal-mid: #12A5B5;
+    --teal-bright: #3AC3D1;
+    --teal-soft: #DAF1F4;
+    --steel: #3C7A8E;
     --amber: #B5730E;
     --amber-soft: #F6EBD7;
     --red: #B33A2F;
     --radius: 12px;
     --radius-sm: 9px;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #101716;
-      --surface: #18211F;
-      --surface-2: #1E2826;
-      --ink: #E4EAE9;
-      --muted: #97A4A2;
-      --hint: #647170;
-      --line: #2A3633;
-      --line-strong: #38463F;
-      --teal-soft: #15302D;
-      --amber-soft: #33260F;
-    }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { background: var(--bg); }
@@ -630,7 +616,7 @@
 
 <script>
 const BLOCKS = [
-  { anchor: 'Чудесное утро', time: 'День Сурка', color: '#2E7D78', tasks: [
+  { anchor: 'Чудесное утро', time: 'День Сурка', color: '#E0952B', tasks: [
     { id: 'fajr',        name: 'Morning salah.', min: true, star:true, rep:'daily', myday:true },
     { id: 'water',       name: 'Пью 2 стакана кипячёной воды утром', star:true, rep:'daily', myday:true },
     { id: 'med',         name: 'МЕДИТАЦИЯ', min: true, rep:'daily', myday:true },
@@ -644,7 +630,7 @@ const BLOCKS = [
   { anchor: 'Тренировки мозга', time: 'День Сурка', color: '#3C5A6E', tasks: [
     { id: 'wikium', name: 'Mind Training', rep:'daily' },
   ]},
-  { anchor: 'Solah', time: 'Belief', color: '#1A4D4A', tasks: [
+  { anchor: 'Solah', time: 'Belief', color: '#0E8C99', tasks: [
     { id: 'dhuhr',   name: 'Midday salah', min: true, star:true, rep:'daily', myday:true },
     { id: 'asr',     name: 'Afternoon salah', min: true, star:true, rep:'daily', myday:true },
     { id: 'maghrib', name: 'Evening salah', min: true, star:true, rep:'daily', myday:true },
