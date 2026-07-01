@@ -136,6 +136,36 @@
   .hstar svg { width: 18px; height: 18px; fill: var(--amber); }
   .min-tag { font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: var(--amber-soft); color: var(--amber); flex-shrink: 0; letter-spacing: 0.02em; }
   .task.hidden-soft { display: none; }
+
+  /* tile grid home */
+  .tiles { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+  .tile { background: var(--surface); border: 0.5px solid var(--line); border-radius: 14px; padding: 13px; min-height: 92px;
+    display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; transition: transform 0.1s; }
+  .tile:active { transform: scale(0.97); }
+  .tile.full { background: var(--teal-soft); border-color: transparent; }
+  .tile-top { display: flex; align-items: center; justify-content: space-between; }
+  .tile .tdot { width: 9px; height: 9px; border-radius: 50%; }
+  .tile .ticon { display: flex; align-items: center; }
+  .tile .ticon svg { width: 22px; height: 22px; }
+  .tile .tcount { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tile .tname { font-size: 14px; font-weight: 500; color: var(--ink); line-height: 1.25; }
+  .tile .tbar { height: 4px; border-radius: 3px; background: var(--line); overflow: hidden; }
+  .tile .tbar div { height: 100%; border-radius: 3px; transition: width 0.3s; }
+
+  /* block focus header */
+  #dayBlockHead { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  #blockBack { width: 38px; height: 38px; flex-shrink: 0; border: 0.5px solid var(--line); background: var(--surface);
+    border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink); }
+  #blockBack svg { width: 20px; height: 20px; }
+  .bh-info { flex: 1; min-width: 0; }
+  .bh-name { font-size: 18px; font-weight: 600; color: var(--ink); }
+  .bh-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .bh-pct { font-size: 13px; font-weight: 600; color: var(--teal-mid); background: var(--teal-soft); padding: 5px 11px; border-radius: 20px; }
+
+  .task.big { padding: 14px 13px; margin-top: 8px; }
+  .task.big .check { width: 26px; height: 26px; border-radius: 50%; }
+  .task.big .nm { font-size: 14.5px; }
+  .block-hint { text-align: center; font-size: 11px; color: var(--hint); margin-top: 14px; padding: 0 8px; }
   .expand-row { display: flex; gap: 8px; margin-top: 12px; }
   .expand-row button { flex: 1; padding: 9px; font-size: 12px; font-weight: 600; color: var(--muted);
     background: var(--surface); border: 0.5px solid var(--line); border-radius: var(--radius-sm); cursor: pointer; }
@@ -322,40 +352,43 @@
 </header>
 
 <div class="view active" id="view-day">
-  <div class="datewrap">
-    <div>
-      <div class="today-date" id="dateMain">—</div>
-      <div class="today-sub" id="dateSub">—</div>
+  <div id="dayHome">
+    <div class="datewrap">
+      <div>
+        <div class="today-date" id="dateMain">—</div>
+        <div class="today-sub" id="dateSub">—</div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="num accent" id="streak">0</div><div class="lbl">серия дней</div></div>
+      <div class="ring-wrap">
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="34" fill="none" stroke="var(--line)" stroke-width="6"/>
+          <circle id="ringFill" cx="40" cy="40" r="34" fill="none" stroke="var(--teal-mid)" stroke-width="6"
+            stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6"
+            transform="rotate(-90 40 40)" style="transition: stroke-dashoffset 0.4s;"/>
+        </svg>
+        <div class="pct"><b id="pctNum">0%</b><small>сегодня</small></div>
+      </div>
+      <div class="stat"><div class="num" id="total">0</div><div class="lbl">активных дней</div></div>
+    </div>
+
+    <div class="hardrow">
+      <div><div class="t">Тяжёлый день</div><div class="s">Показать только минимум</div></div>
+      <label class="switch"><input type="checkbox" id="hardToggle"><span class="slider"></span></label>
     </div>
   </div>
 
-  <div class="stats">
-    <div class="stat"><div class="num accent" id="streak">0</div><div class="lbl">серия дней</div></div>
-    <div class="ring-wrap">
-      <svg width="80" height="80" viewBox="0 0 80 80">
-        <circle cx="40" cy="40" r="34" fill="none" stroke="var(--line)" stroke-width="6"/>
-        <circle id="ringFill" cx="40" cy="40" r="34" fill="none" stroke="var(--teal-mid)" stroke-width="6"
-          stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6"
-          transform="rotate(-90 40 40)" style="transition: stroke-dashoffset 0.4s;"/>
-      </svg>
-      <div class="pct"><b id="pctNum">0%</b><small>сегодня</small></div>
-    </div>
-    <div class="stat"><div class="num" id="total">0</div><div class="lbl">активных дней</div></div>
-  </div>
-
-  <div class="hardrow">
-    <div><div class="t">Тяжёлый день</div><div class="s">Показать только минимум</div></div>
-    <label class="switch"><input type="checkbox" id="hardToggle"><span class="slider"></span></label>
+  <div id="dayBlockHead" style="display:none;">
+    <button id="blockBack" aria-label="Назад"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <div class="bh-info"><div class="bh-name" id="blockName">—</div><div class="bh-sub" id="blockSub">—</div></div>
+    <span class="bh-pct" id="blockPct">0%</span>
   </div>
 
   <div class="blocks" id="blocks"></div>
 
-  <div class="expand-row">
-    <button id="expandAll">Раскрыть все</button>
-    <button id="collapseAll">Свернуть все</button>
-  </div>
-
-  <div class="foot">
+  <div class="foot" id="dayFoot">
     <button id="resetBtn">Сбросить день</button>
   </div>
 </div>
@@ -751,6 +784,22 @@ document.getElementById('hbReset').addEventListener('click',()=>{ if(!hbId)retur
 document.getElementById('hbClose').addEventListener('click',hbClose);
 document.getElementById('hbModal').addEventListener('click',e=>{ if(e.target.id==='hbModal') hbClose(); });
 
+const ICONS = {
+ 'Чудесное утро':'<path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/><line x1="23" y1="22" x2="1" y2="22"/><polyline points="8 6 12 2 16 6"/>',
+ 'Тренировки мозга':'<path d="M9 18h6"/><path d="M10 21h4"/><path d="M8 14a5 5 0 1 1 8 0c-.5.6-1 1.4-1 2.3v.7H9v-.7c0-.9-.5-1.7-1-2.3z"/>',
+ 'Solah':'<path d="M3 21V12"/><path d="M21 21V12"/><path d="M3 12a9 6 0 0 1 18 0"/><path d="M2 21h20"/><path d="M12 3c-1 1.2-2.5 2-2.5 3.5a2.5 2.5 0 0 0 5 0C14.5 5 13 4.2 12 3z"/><path d="M10 21v-3a2 2 0 0 1 4 0v3"/>',
+ 'Поминания':'<path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9z"/><path d="M18 15l.7 2L21 18l-2.3.7L18 21l-.7-2.3L15 18z"/>',
+ 'Духовное развитие':'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+ 'Английский':'<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+ 'Я здоров':'<path d="M19 5a4.5 4.5 0 0 0-7 1 4.5 4.5 0 0 0-7-1c-2 1.8-1.7 4.6.5 6.8L12 19l6.5-7.2c2.2-2.2 2.5-5 .5-6.8z"/><polyline points="6 12 9 12 10.5 9.5 13 14 14.5 12 18 12"/>',
+ 'Новые привычки':'<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
+ 'Режим и семья':'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>'
+};
+const CHECK_ICON='<polyline points="20 6 9 17 4 12"/>';
+function iconSvg(inner){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+inner+'</svg>'; }
+
+let dayMode='home'; let curBlock=0; let pressTimer=null; let longPressed=false;
+
 function renderDay(){
   document.getElementById('dateMain').textContent=fmtMain(view);
   document.getElementById('dateSub').textContent=fmtSub(view);
@@ -759,52 +808,74 @@ function renderDay(){
 
   const dd=dayData(view);
   const blocksEl=document.getElementById('blocks'); blocksEl.innerHTML='';
-  BLOCKS.forEach((b,bi)=>{
-    let visTasks=b.tasks.filter(t=>appliesOn(t,view));
-    if(visTasks.length===0) return;
-    visTasks=visTasks.slice().sort((a,b)=>{ const ta=hget(a).time, tb=hget(b).time;
-      if(ta&&tb) return ta<tb?-1:(ta>tb?1:0); if(ta) return -1; if(tb) return 1; return 0; });
-    const total=visTasks.length; const done=visTasks.filter(t=>dd[t.id]).length;
-    const isOpen=!!openBlocks[bi];
-    const block=document.createElement('div'); block.className='block'+(isOpen?' open':'');
-    let h='<div class="bhead" data-bi="'+bi+'">'
-      +'<span class="bdot" style="background:'+b.color+'"></span>'
-      +'<span class="bnm">'+b.anchor+'</span><span class="btm">'+b.time+'</span>'
-      +'<span class="bprog">'+done+'/'+total+'</span>'
-      +'<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></div>';
-    h+='<div class="btasks">';
-    visTasks.forEach(t=>{ const hm=hget(t); const dn=!!dd[t.id]; const hide=hardMode&&!hm.min;
-      let meta='';
-      if(hm.time) meta+='<span class="m-time"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'+hm.time+(hm.dur?' · '+hm.dur+ ' мин':'')+'</span>';
-      const dueLbl = hm.days ? DOW[hm.days[0]] : ((hm.rep||t.myday)?'сегодня':'');
-      if(dueLbl) meta+='<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>'+dueLbl+'</span>';
-      if(hm.rep) meta+='<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/></svg>повтор</span>';
-      if(t.myday) meta+='<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>Мой день</span>';
-      if(hm.note) meta+='<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v12H7l-3 3z"/></svg></span>';
-      h+='<div class="task'+(dn?' done':'')+(hide?' hidden-soft':'')+'" data-id="'+t.id+'">'
-        +'<span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></span>'
-        +'<div class="nm-wrap"><div class="nm-line"><span class="nm">'+t.name+'</span>'+(hm.min?'<span class="min-tag">МИНИМУМ</span>':'')+'</div>'
-        +(meta?'<div class="hmeta">'+meta+'</div>':'')+'</div>'
-        +(hm.star?'<span class="hstar"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7 7 .5-5.5 4.5 2 7-6.5-4-6.5 4 2-7L2 9.5 9 9z"/></svg></span>':'')
-        +'</div>';
-    });
-    h+='</div>';
-    block.innerHTML=h; blocksEl.appendChild(block);
-  });
-  blocksEl.querySelectorAll('.bhead').forEach(el=>{
-    el.addEventListener('click',()=>{ const bi=el.dataset.bi; openBlocks[bi]=!openBlocks[bi]; saveOpen(); renderDay(); });
-  });
-  blocksEl.querySelectorAll('.task').forEach(el=>{
-    el.querySelector('.check').addEventListener('click',e=>{ e.stopPropagation(); toggle(el.dataset.id); });
-    el.addEventListener('click',()=>hbOpen(el.dataset.id));
-  });
+  const home=document.getElementById('dayHome'), bhead=document.getElementById('dayBlockHead'), foot=document.getElementById('dayFoot');
 
-  const pct=pctOf(view, dd);
-  document.getElementById('pctNum').textContent=pct+'%';
-  document.getElementById('ringFill').style.strokeDashoffset=RING_LEN*(1-pct/100);
-  document.getElementById('streak').textContent=streakEnding(today);
-  const rec=computeRecords();
-  document.getElementById('total').textContent=rec.total;
+  if(dayMode==='home'){
+    home.style.display=''; bhead.style.display='none'; foot.style.display='';
+    blocksEl.className='tiles';
+    BLOCKS.forEach((b,bi)=>{
+      const vis=b.tasks.filter(t=>appliesOn(t,view) && !(hardMode&&!hget(t).min));
+      if(vis.length===0) return;
+      const total=vis.length, done=vis.filter(t=>dd[t.id]).length;
+      const pct=Math.round(done/total*100); const full=done===total;
+      const tile=document.createElement('div'); tile.className='tile'+(full?' full':''); tile.dataset.bi=bi;
+      const ic = full ? CHECK_ICON : (ICONS[b.anchor]||'');
+      const icColor = full ? 'var(--teal-mid)' : b.color;
+      tile.innerHTML='<div class="tile-top"><span class="ticon" style="color:'+icColor+'">'+iconSvg(ic)+'</span><span class="tcount">'+done+'/'+total+'</span></div>'
+        +'<div class="tname">'+b.anchor+'</div>'
+        +'<div class="tbar"><div style="width:'+pct+'%;background:'+b.color+'"></div></div>';
+      tile.addEventListener('click',()=>{ dayMode='block'; curBlock=bi; renderDay(); });
+      blocksEl.appendChild(tile);
+    });
+    const pct=pctOf(view, dd);
+    document.getElementById('pctNum').textContent=pct+'%';
+    document.getElementById('ringFill').style.strokeDashoffset=RING_LEN*(1-pct/100);
+    document.getElementById('streak').textContent=streakEnding(today);
+    document.getElementById('total').textContent=computeRecords().total;
+    return;
+  }
+
+  // block focus view
+  home.style.display='none'; bhead.style.display='flex'; foot.style.display='none';
+  blocksEl.className='blocks';
+  const b=BLOCKS[curBlock];
+  let visTasks=b.tasks.filter(t=>appliesOn(t,view));
+  visTasks=visTasks.slice().sort((a,b)=>{ const ta=hget(a).time, tb=hget(b).time;
+    if(ta&&tb) return ta<tb?-1:(ta>tb?1:0); if(ta) return -1; if(tb) return 1; return 0; });
+  const total=visTasks.length, done=visTasks.filter(t=>dd[t.id]).length;
+  const pctB=total?Math.round(done/total*100):0;
+  document.getElementById('blockName').textContent=b.anchor;
+  document.getElementById('blockSub').textContent=b.time+' · '+done+' из '+total;
+  document.getElementById('blockPct').textContent=pctB+'%';
+
+  let h='';
+  visTasks.forEach(t=>{ const hm=hget(t); const dn=!!dd[t.id]; const hide=hardMode&&!hm.min;
+    let meta='';
+    if(hm.time) meta+='<span class="m-time"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'+hm.time+(hm.dur?' · '+hm.dur+' мин':'')+'</span>';
+    const dueLbl = hm.days ? DOW[hm.days[0]] : ((hm.rep||t.myday)?'сегодня':'');
+    if(dueLbl) meta+='<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>'+dueLbl+'</span>';
+    if(hm.rep) meta+='<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/></svg>повтор</span>';
+    if(t.myday) meta+='<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>Мой день</span>';
+    if(hm.note) meta+='<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v12H7l-3 3z"/></svg></span>';
+    h+='<div class="task big'+(dn?' done':'')+(hide?' hidden-soft':'')+'" data-id="'+t.id+'">'
+      +'<span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></span>'
+      +'<div class="nm-wrap"><div class="nm-line"><span class="nm">'+t.name+'</span>'+(hm.min?'<span class="min-tag">МИНИМУМ</span>':'')+'</div>'
+      +(meta?'<div class="hmeta">'+meta+'</div>':'')+'</div>'
+      +(hm.star?'<span class="hstar"><svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7 7 .5-5.5 4.5 2 7-6.5-4-6.5 4 2-7L2 9.5 9 9z"/></svg></span>':'')
+      +'</div>';
+  });
+  h+='<div class="block-hint">нажми строку — отметить · удержание — изменить</div>';
+  blocksEl.innerHTML=h;
+
+  blocksEl.querySelectorAll('.task').forEach(el=>{
+    const id=el.dataset.id;
+    el.addEventListener('click',()=>{ if(longPressed){ longPressed=false; return; } toggle(id); });
+    const start=()=>{ longPressed=false; pressTimer=setTimeout(()=>{ longPressed=true; hbOpen(id); }, 500); };
+    const cancel=()=>{ clearTimeout(pressTimer); };
+    el.addEventListener('touchstart',start,{passive:true});
+    el.addEventListener('touchend',cancel); el.addEventListener('touchmove',cancel);
+    el.addEventListener('mousedown',start); el.addEventListener('mouseup',cancel); el.addEventListener('mouseleave',cancel);
+  });
 }
 
 function renderStats(){
@@ -988,15 +1059,14 @@ document.querySelectorAll('.tabs button').forEach(btn=>{
   });
 });
 
-document.getElementById('prev').addEventListener('click',()=>{ view.setDate(view.getDate()-1); renderDay(); });
+document.getElementById('prev').addEventListener('click',()=>{ view.setDate(view.getDate()-1); dayMode='home'; renderDay(); });
 document.getElementById('next').addEventListener('click',()=>{ const t=new Date();t.setHours(0,0,0,0);
-  if(view.getTime()<t.getTime()){view.setDate(view.getDate()+1);renderDay();} });
-document.getElementById('todayBtn').addEventListener('click',()=>{ view=new Date();view.setHours(0,0,0,0); renderDay();
+  if(view.getTime()<t.getTime()){view.setDate(view.getDate()+1);dayMode='home';renderDay();} });
+document.getElementById('todayBtn').addEventListener('click',()=>{ view=new Date();view.setHours(0,0,0,0); dayMode='home'; renderDay();
   if(document.getElementById('view-stats').classList.contains('active'))renderStats(); });
 document.getElementById('hardToggle').addEventListener('change',e=>{ hardMode=e.target.checked; renderDay(); });
 document.getElementById('resetBtn').addEventListener('click',()=>{ if(confirm('Сбросить отметки за '+fmtMain(view)+'?')){ const all=load();delete all[keyOf(view)];save(all);renderDay(); } });
-document.getElementById('expandAll').addEventListener('click',()=>{ BLOCKS.forEach((b,i)=>openBlocks[i]=true); saveOpen(); renderDay(); });
-document.getElementById('collapseAll').addEventListener('click',()=>{ openBlocks={}; saveOpen(); renderDay(); });
+document.getElementById('blockBack').addEventListener('click',()=>{ dayMode='home'; renderDay(); });
 document.querySelectorAll('.rep-btn').forEach(b=>b.addEventListener('click',()=>runReport(b.dataset.report)));
 document.getElementById('exportAll').addEventListener('click',()=>{ download('disciplina-backup-'+keyOf(new Date())+'.json', localStorage.getItem(STORE)||'{}','application/json'); });
 

@@ -1,6 +1,6 @@
 // Дисциплина — service worker
 // Стратегия: сеть в приоритете (свежие обновления), кэш как запасной вариант (офлайн).
-const CACHE = 'disciplina-v1';
+const CACHE = 'disciplina-v2';
 const ASSETS = [
   './',
   './index.html',
