@@ -477,6 +477,15 @@
     <button id="exportAll">Полная резервная копия (JSON)</button>
   </div>
   <div class="legend-note">Файлы скачиваются на устройство. CSV открывается в Excel и Google Таблицах.</div>
+
+  <div class="panel" style="margin-top:18px;">
+    <h2>Уведомления</h2>
+    <button class="rep-btn" id="pushBtn" style="display:none;">
+      <span class="rep-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg></span>
+      <span class="rep-txt"><span class="t" id="pushBtnText">Включить напоминания</span><span class="s" id="pushStatus"></span></span>
+    </button>
+    <div class="legend-note" id="pushUnsupported" style="display:none; margin-top:0;">Этот браузер не поддерживает push-уведомления.</div>
+  </div>
 </div>
 
 <div class="tk-modal" id="hbModal" aria-hidden="true">
@@ -1396,10 +1405,96 @@ tkRequestNotify(); tkScheduleAll();
 renderDay();
 </script>
 <script>
+const VAPID_PUBLIC_KEY = 'BM7eaenXpYawU8qeVep_VpVZcKH9Fok7XhLfsO7Y6S8ZYdk81UOETPN09icOGCAjRMGGDpAyglUJCO34aHA0bec';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+let pushSubscription = null;
+
+function pushSupported() {
+  return 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+}
+
+async function pushRefreshUI() {
+  const btn = document.getElementById('pushBtn');
+  const btnText = document.getElementById('pushBtnText');
+  const status = document.getElementById('pushStatus');
+  const unsupported = document.getElementById('pushUnsupported');
+
+  if (!pushSupported()) {
+    btn.style.display = 'none';
+    unsupported.style.display = 'block';
+    return;
+  }
+  unsupported.style.display = 'none';
+
+  if (Notification.permission === 'denied') {
+    btn.style.display = 'none';
+    unsupported.style.display = 'block';
+    unsupported.textContent = 'Уведомления заблокированы в браузере. Включите их вручную в настройках сайта.';
+    return;
+  }
+
+  btn.style.display = 'flex';
+  if (Notification.permission === 'granted') {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      pushSubscription = sub;
+      btnText.textContent = 'Напоминания включены';
+      status.textContent = 'Нажмите, чтобы отключить';
+      btn.dataset.mode = 'unsubscribe';
+      return;
+    }
+  }
+  pushSubscription = null;
+  btnText.textContent = 'Включить напоминания';
+  status.textContent = '';
+  btn.dataset.mode = 'subscribe';
+}
+
+async function pushSubscribe() {
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') { pushRefreshUI(); return; }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+    pushSubscription = sub;
+    console.log('Push subscription:', JSON.stringify(sub));
+  } catch (err) {
+    console.log('Push subscribe failed:', err);
+  }
+  pushRefreshUI();
+}
+
+async function pushUnsubscribe() {
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription();
+  if (sub) { await sub.unsubscribe(); }
+  pushSubscription = null;
+  pushRefreshUI();
+}
+
+document.getElementById('pushBtn').addEventListener('click', function () {
+  if (this.dataset.mode === 'unsubscribe') pushUnsubscribe(); else pushSubscribe();
+});
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('sw.js').catch(function(){});
+    navigator.serviceWorker.register('sw.js').then(pushRefreshUI).catch(function(){});
   });
+} else {
+  pushRefreshUI();
 }
 </script>
 </body>
