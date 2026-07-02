@@ -1460,27 +1460,47 @@ async function pushRefreshUI() {
   btn.dataset.mode = 'subscribe';
 }
 
+const PUSH_BACKEND_URL = 'https://family-chores-bot-dnb8.onrender.com/push/subscribe';
+
+async function sendSubscriptionToServer(sub) {
+  const res = await fetch(PUSH_BACKEND_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(sub)
+  });
+  if (!res.ok) throw new Error('Server responded ' + res.status);
+}
+
 async function pushSubscribe() {
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') { pushRefreshUI(); return; }
+  let sub = null;
   try {
     const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.subscribe({
+    sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
     });
     pushSubscription = sub;
-    console.log('Push subscription:', JSON.stringify(sub));
   } catch (err) {
     console.log('Push subscribe failed:', err);
   }
-  pushRefreshUI();
+  await pushRefreshUI();
+  if (sub) {
+    try {
+      await sendSubscriptionToServer(sub);
+    } catch (err) {
+      console.log('Failed to send subscription to server:', err);
+      document.getElementById('pushStatus').textContent = 'Подписка создана, но не удалось сохранить на сервере — попробуйте ещё раз';
+    }
+  }
 }
 
 async function pushUnsubscribe() {
   const reg = await navigator.serviceWorker.ready;
   const sub = await reg.pushManager.getSubscription();
   if (sub) { await sub.unsubscribe(); }
+  // TODO: уведомить бэкенд об отписке (например, DELETE /push/subscribe с endpoint) — отдельная доработка
   pushSubscription = null;
   pushRefreshUI();
 }
