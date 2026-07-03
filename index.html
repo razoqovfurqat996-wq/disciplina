@@ -338,6 +338,12 @@
   .rem-wd { flex: 1; min-width: 38px; padding: 9px 0; text-align: center; border: 0.5px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
   .rem-wd.active { background: var(--teal-soft); color: var(--teal); border-color: var(--teal-mid); }
   .rem-cancel { flex: 1; padding: 12px; border: 0.5px solid var(--line); background: var(--surface); color: var(--muted); border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; }
+  .rem-link-block { margin-top: 10px; padding-top: 10px; border-top: 0.5px solid var(--line); }
+  .rem-link-row { display: flex; align-items: center; gap: 10px; padding: 4px; }
+  .rem-link-ic { flex-shrink: 0; font-size: 16px; }
+  .rem-link-status { flex: 1; font-size: 13px; color: var(--muted); }
+  .rem-link-btn { flex-shrink: 0; padding: 7px 13px; border: none; background: var(--teal-soft); color: var(--teal); border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .rem-linked-tag { font-size: 11px; color: var(--hint); margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -532,7 +538,7 @@
       <div class="tk-m-title" id="remModalTitle" style="cursor:default;">Новое напоминание</div>
     </div>
 
-    <div class="rem-field">
+    <div class="rem-field" id="remTitleField">
       <label for="remTitle">Название</label>
       <input type="text" id="remTitle" placeholder="Например, Вечерняя молитва">
     </div>
@@ -622,6 +628,8 @@
 
     <textarea class="tk-m-note" id="hbNote" placeholder="Заметка"></textarea>
 
+    <div class="rem-link-block" id="hbRemBlock"></div>
+
     <div class="tk-m-foot">
       <button class="tk-m-del" id="hbReset">Сбросить</button>
       <button class="tk-m-done" id="hbClose">Готово</button>
@@ -691,6 +699,8 @@
     </label>
 
     <textarea class="tk-m-note" id="tkmNote" placeholder="Заметка"></textarea>
+
+    <div class="rem-link-block" id="tkRemBlock"></div>
 
     <div class="tk-m-foot">
       <button class="tk-m-del" id="tkmDelete">Удалить</button>
@@ -850,6 +860,7 @@ function hbOpen(id){
   document.getElementById('hbDay').value = (hm.days&&hm.days.length)?hm.days[0]:'5';
   document.getElementById('hbMin').classList.toggle('on',!!hm.min);
   document.getElementById('hbMinLbl').textContent = hm.min?'Это «минимум»':'Отметить как «минимум»';
+  remRenderLinkedBlock('hbRemBlock', id, t.name, 'hbModal');
   document.getElementById('hbModal').classList.add('open');
 }
 function hbClose(){ document.getElementById('hbModal').classList.remove('open'); hbId=null; renderDay(); }
@@ -1445,6 +1456,7 @@ function tkOpen(id){
   const sel=document.getElementById('tkmList'); sel.innerHTML='';
   TK.lists.forEach(l=>{ const o=document.createElement('option'); o.value=l.id; o.textContent=l.name; if(l.id===t.listId)o.selected=true; sel.appendChild(o); });
   tkRenderSteps(t);
+  remRenderLinkedBlock('tkRemBlock', t.id, t.title, 'tkModal');
   document.getElementById('tkModal').classList.add('open');
 }
 function tkRenderSteps(t){
@@ -1474,7 +1486,18 @@ document.getElementById('tkmList').addEventListener('change',e=>{ const t=tkCurr
 document.getElementById('tkmNote').addEventListener('input',e=>{ const t=tkCurrent(); if(t){ t.note=e.target.value; tkPersist(); } });
 document.getElementById('tkmStepAdd').addEventListener('click',()=>{ const t=tkCurrent(); const inp=document.getElementById('tkmStepInput'); if(t&&inp.value.trim()){ t.steps.push({title:inp.value.trim(),done:false}); inp.value=''; tkPersist(); tkRenderSteps(t); } });
 document.getElementById('tkmStepInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){ const t=tkCurrent(); if(t&&e.target.value.trim()){ t.steps.push({title:e.target.value.trim(),done:false}); e.target.value=''; tkPersist(); tkRenderSteps(t); } } });
-document.getElementById('tkmDelete').addEventListener('click',()=>{ const t=tkCurrent(); if(!t)return; if(confirm('Удалить задачу?')){ TK.tasks=TK.tasks.filter(x=>x.id!==t.id); tkPersist(); tkCloseModal(); } });
+document.getElementById('tkmDelete').addEventListener('click',()=>{
+  const t=tkCurrent(); if(!t)return;
+  if(confirm('Удалить задачу?')){
+    const linked=remindersCache.find(r=>r.linkedId===t.id);
+    TK.tasks=TK.tasks.filter(x=>x.id!==t.id); tkPersist(); tkCloseModal();
+    if(linked){
+      fetch(REMINDERS_API+'/'+linked.id,{method:'DELETE'})
+        .then(()=>{ remindersCache=remindersCache.filter(r=>r.id!==linked.id); })
+        .catch(err=>console.log('Failed to delete linked reminder:',err));
+    }
+  }
+});
 document.getElementById('tkmClose').addEventListener('click',tkCloseModal);
 document.getElementById('tkModal').addEventListener('click',e=>{ if(e.target.id==='tkModal') tkCloseModal(); });
 
@@ -1495,6 +1518,9 @@ const REMINDERS_API = 'https://family-chores-bot-dnb8.onrender.com/reminders';
 let remindersCache = [];
 let remEditingId = null;
 let remSelectedWeekdays = [];
+let remLinkedId = null;
+let remReturnTo = null;
+let remReturnLinkedId = null;
 const REM_DAY_NAMES = {1:'Пн',2:'Вт',3:'Ср',4:'Чт',5:'Пт',6:'Сб',7:'Вс'};
 
 function remPeriodLabel(r){
@@ -1530,7 +1556,8 @@ function remRenderList(){
   remindersCache.forEach(r=>{
     const card=document.createElement('div'); card.className='rem-card';
     card.innerHTML='<label class="switch"><input type="checkbox" class="rem-toggle"'+(r.enabled?' checked':'')+'><span class="slider"></span></label>'
-      +'<div class="rem-info"><div class="rem-title">'+tkEsc(r.title)+'</div><div class="rem-meta">'+tkEsc(r.time)+' · '+tkEsc(remPeriodLabel(r))+'</div></div>'
+      +'<div class="rem-info"><div class="rem-title">'+tkEsc(r.title)+'</div><div class="rem-meta">'+tkEsc(r.time)+' · '+tkEsc(remPeriodLabel(r))+'</div>'
+      +(r.linkedId?'<div class="rem-linked-tag">🔗 Привязано к задаче</div>':'')+'</div>'
       +'<div class="rem-actions">'
       +'<button class="rem-icon-btn rem-edit" aria-label="Редактировать"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>'
       +'<button class="rem-icon-btn rem-delete" aria-label="Удалить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>'
@@ -1548,7 +1575,7 @@ async function remToggle(id,enabled){
   try{
     const res=await fetch(REMINDERS_API+'/'+id,{
       method:'PUT', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({title:r.title,body:r.body,time:r.time,period:r.period,weekdays:r.weekdays,date:r.date,enabled})
+      body:JSON.stringify({title:r.title,body:r.body,time:r.time,period:r.period,weekdays:r.weekdays,date:r.date,enabled,linkedId:r.linkedId})
     });
     if(!res.ok) throw new Error('bad status');
     r.enabled=enabled;
@@ -1584,10 +1611,13 @@ function remSetWeekdays(days){
   document.querySelectorAll('.rem-wd').forEach(b=>b.classList.toggle('active',remSelectedWeekdays.includes(Number(b.dataset.day))));
 }
 
-function remOpenModal(r){
+function remOpenModal(r,opts){
+  opts=opts||{};
   remEditingId=r?r.id:null;
+  remLinkedId=opts.linkedId||(r?r.linkedId:null)||null;
   document.getElementById('remModalTitle').textContent=r?'Редактировать напоминание':'Новое напоминание';
-  document.getElementById('remTitle').value=r?r.title:'';
+  document.getElementById('remTitleField').style.display=opts.linkedId?'none':'';
+  document.getElementById('remTitle').value=r?r.title:(opts.defaultTitle||'');
   document.getElementById('remBody').value=r?(r.body||''):'';
   document.getElementById('remTime').value=r?r.time:'';
   remSetPeriod(r?r.period:'daily');
@@ -1595,7 +1625,29 @@ function remOpenModal(r){
   document.getElementById('remDate').value=r&&r.date?r.date:'';
   document.getElementById('remModal').classList.add('open');
 }
-function remCloseModal(){ document.getElementById('remModal').classList.remove('open'); }
+function remCloseModal(){
+  document.getElementById('remModal').classList.remove('open');
+  document.getElementById('remTitleField').style.display='';
+  const returnTo=remReturnTo, returnId=remReturnLinkedId;
+  remLinkedId=null; remReturnTo=null; remReturnLinkedId=null;
+  if(returnTo==='tkModal') tkOpen(returnId);
+  else if(returnTo==='hbModal') hbOpen(returnId);
+}
+
+function remRenderLinkedBlock(containerId,linkedId,defaultTitle,returnModal){
+  const el=document.getElementById(containerId); if(!el) return;
+  const existing=remindersCache.find(r=>r.linkedId===linkedId);
+  if(existing){
+    el.innerHTML='<div class="rem-link-row"><span class="rem-link-ic">🔔</span><div class="rem-link-status">'+tkEsc(existing.time)+' · '+tkEsc(remPeriodLabel(existing))+'</div><button class="rem-link-btn" type="button">Изменить</button></div>';
+  }else{
+    el.innerHTML='<div class="rem-link-row"><span class="rem-link-ic">🔔</span><div class="rem-link-status">Напоминание не задано</div><button class="rem-link-btn" type="button">Добавить</button></div>';
+  }
+  el.querySelector('.rem-link-btn').addEventListener('click',()=>{
+    document.getElementById(returnModal).classList.remove('open');
+    remReturnTo=returnModal; remReturnLinkedId=linkedId;
+    remOpenModal(existing||null,{linkedId,defaultTitle});
+  });
+}
 
 document.querySelectorAll('.rem-period button').forEach(b=>{
   b.addEventListener('click',()=>remSetPeriod(b.dataset.period));
@@ -1631,7 +1683,8 @@ document.getElementById('remSaveBtn').addEventListener('click',async()=>{
     period,
     weekdays:period==='weekly'?remSelectedWeekdays.slice().sort((a,b)=>a-b):undefined,
     date:period==='once'?remDate:undefined,
-    enabled: existing?existing.enabled!==false:true
+    enabled: existing?existing.enabled!==false:true,
+    linkedId: remLinkedId||undefined
   };
 
   remShowError('');
@@ -1656,6 +1709,7 @@ document.getElementById('remSaveBtn').addEventListener('click',async()=>{
 });
 
 renderDay();
+remLoad();
 </script>
 <script>
 const VAPID_PUBLIC_KEY = 'BM7eaenXpYawU8qeVep_VpVZcKH9Fok7XhLfsO7Y6S8ZYdk81UOETPN09icOGCAjRMGGDpAyglUJCO34aHA0bec';
