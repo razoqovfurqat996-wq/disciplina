@@ -1062,7 +1062,7 @@ document.getElementById('todayBtn').addEventListener('click',()=>{ view=new Date
 document.getElementById('hardToggle').addEventListener('change',e=>{ hardMode=e.target.checked; renderDay(); });
 document.getElementById('resetBtn').addEventListener('click',()=>{ if(confirm('Сбросить отметки за '+fmtMain(view)+'?')){ const all=load();delete all[keyOf(view)];save(all);renderDay(); } });
 document.getElementById('blockBack').addEventListener('click',()=>{ dayMode='home'; renderDay(); });
-document.querySelectorAll('.rep-btn').forEach(b=>b.addEventListener('click',()=>runReport(b.dataset.report)));
+document.querySelectorAll('.rep-btn:not(#pushBtn)').forEach(b=>b.addEventListener('click',()=>runReport(b.dataset.report)));
 document.getElementById('exportAll').addEventListener('click',()=>{ download('disciplina-backup-'+keyOf(new Date())+'.json', localStorage.getItem(STORE)||'{}','application/json'); });
 
 /* ================= TASKS MODULE (To Do) ================= */
