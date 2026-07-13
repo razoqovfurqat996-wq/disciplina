@@ -327,7 +327,7 @@
   .rem-icon-btn svg { width: 17px; height: 17px; }
   .rem-field { margin-top: 12px; }
   .rem-field label { display: block; font-size: 11.5px; font-weight: 700; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
-  .rem-field input[type="text"], .rem-field input[type="time"], .rem-field input[type="date"] {
+  .rem-field input[type="text"], .rem-field input[type="time"], .rem-field input[type="date"], .rem-field input[type="number"] {
     width: 100%; padding: 11px; border: 0.5px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font-size: 14px; font-family: inherit; outline: none;
   }
   .rem-field input:focus { border-color: var(--teal-mid); }
@@ -344,6 +344,14 @@
   .rem-link-status { flex: 1; font-size: 13px; color: var(--muted); }
   .rem-link-btn { flex-shrink: 0; padding: 7px 13px; border: none; background: var(--teal-soft); color: var(--teal); border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 600; cursor: pointer; }
   .rem-linked-tag { font-size: 11px; color: var(--hint); margin-top: 2px; }
+
+  /* ===== SLEEP MODULE ===== */
+  .sl-bed-btn { width: 100%; padding: 14px; border: none; background: var(--teal); color: #fff;
+    border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; cursor: pointer; }
+  .sl-bed-btn:active { transform: scale(0.98); }
+  .sl-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .sl-settings-btn { flex: 1; padding: 12px; border: 0.5px solid var(--line); background: var(--surface);
+    color: var(--ink); border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -363,6 +371,7 @@
     <button data-tab="stats">Стат.</button>
     <button data-tab="reports">Отчёты</button>
     <button data-tab="reminders">Напоминания</button>
+    <button data-tab="sleep">Сон</button>
   </div>
 </header>
 
@@ -530,6 +539,65 @@
     <button id="remAddBtn">+ Добавить напоминание</button>
   </div>
   <div class="legend-note" id="remError" style="display:none; color:var(--red);"></div>
+</div>
+
+<div class="view" id="view-sleep">
+  <div class="datewrap">
+    <div><div class="today-date">Сон</div>
+    <div class="today-sub">Трекер отбоя</div></div>
+  </div>
+
+  <div class="stats" style="grid-template-columns:1fr;">
+    <div class="stat"><div class="num accent" id="slStreak">0</div><div class="lbl">серия дней подряд</div></div>
+  </div>
+
+  <div class="panel" style="margin-top:16px;">
+    <h2>Сегодня</h2>
+    <div id="slTodayBadge" style="margin-bottom:14px; font-size:14px; line-height:1.5;">—</div>
+    <button class="sl-bed-btn" id="slBedBtn" type="button">Лёг спать</button>
+    <div class="rem-field">
+      <label>Скорректировать время (сегодня)</label>
+      <input type="time" id="slManualTime">
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:16px;">
+    <h2>Неделя</h2>
+    <div class="legend-note" id="slWeekSummary" style="margin-top:0;">—</div>
+  </div>
+
+  <div class="panel" style="margin-top:16px;">
+    <h2>История <span class="hsub">14 дней</span></h2>
+    <div id="slHistory" style="display:flex; flex-direction:column; gap:8px; margin-top:10px;"></div>
+  </div>
+
+  <div class="foot" style="margin-top:16px;">
+    <button class="sl-settings-btn" id="slSettingsToggle" type="button">⚙ Настройки</button>
+  </div>
+
+  <div class="panel" id="slSettingsPanel" style="margin-top:16px; display:none;">
+    <h2>Настройки трекера сна</h2>
+    <div class="rem-field">
+      <label>Шаг сдвига (минут)</label>
+      <input type="number" id="slStepMinutes" min="1" max="120">
+    </div>
+    <div class="rem-field">
+      <label>Финальная цель</label>
+      <input type="time" id="slFinalTarget">
+    </div>
+    <div class="rem-field">
+      <label>Порог «ещё допустимо»</label>
+      <input type="time" id="slCrisisThreshold">
+    </div>
+    <div class="rem-field">
+      <label>Сдвигать каждые N дней</label>
+      <input type="number" id="slProgressionEveryDays" min="1" max="30">
+    </div>
+    <div class="rem-field">
+      <label>Дней на базовую линию</label>
+      <input type="number" id="slBaselineDays" min="1" max="14">
+    </div>
+  </div>
 </div>
 
 <div class="tk-modal" id="remModal" aria-hidden="true">
@@ -1150,6 +1218,7 @@ document.querySelectorAll('.tabs button').forEach(btn=>{
     if(btn.dataset.tab==='stats') renderStats();
     if(btn.dataset.tab==='tasks') tkRender();
     if(btn.dataset.tab==='reminders') remLoad();
+    if(btn.dataset.tab==='sleep') slRender();
   });
 });
 
@@ -1706,6 +1775,189 @@ document.getElementById('remSaveBtn').addEventListener('click',async()=>{
     console.log('Failed to save reminder:',err);
     remShowError('Не удалось сохранить — проверьте соединение и попробуйте снова');
   }
+});
+
+/* ================= SLEEP MODULE (Сон) ================= */
+const SLEEP_STORE = 'disciplina_sleep_v1';
+function slDefaultSettings(){ return { stepMinutes:15, finalTarget:'22:00', crisisThreshold:'23:00', progressionEveryDays:3, baselineDays:3 }; }
+function slLoad(){
+  try{
+    const raw=JSON.parse(localStorage.getItem(SLEEP_STORE));
+    if(!raw || typeof raw!=='object') throw 0;
+    return { settings:Object.assign(slDefaultSettings(), raw.settings||{}), logs:Array.isArray(raw.logs)?raw.logs:[], progression:raw.progression||null };
+  }catch(e){ return { settings:slDefaultSettings(), logs:[], progression:null }; }
+}
+function slSave(){ try{ localStorage.setItem(SLEEP_STORE, JSON.stringify(SL)); }catch(e){} }
+let SL = slLoad();
+
+// times treated as minutes-since-midnight, with hours<12 pushed +24h so post-midnight bedtimes sort after evening ones
+function slMin(hhmm){ const p=hhmm.split(':'); const h=Number(p[0]), m=Number(p[1]); return (h<12?h+24:h)*60+m; }
+function slFmt(min){ min=((min%1440)+1440)%1440; const h=Math.floor(min/60), m=min%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
+
+function slStatus(target, actual, crisis){
+  if(!target) return null;
+  const a=slMin(actual), t=slMin(target), c=slMin(crisis);
+  if(a<=t) return 'success';
+  if(a<=c) return 'crisis_ok';
+  return 'missed';
+}
+
+// resolves (and, the first time baseline is complete, freezes) the target for a date; only meant to be
+// called forward for "today" — past logs keep whatever target was frozen into them when they were closed
+function slTargetFor(dateKey){
+  const s=SL.settings;
+  if(SL.progression && dateKey>=SL.progression.startDate){
+    const days=Math.round((new Date(dateKey)-new Date(SL.progression.startDate))/86400000);
+    const steps=Math.floor(days/s.progressionEveryDays);
+    const startMin=slMin(SL.progression.startTarget);
+    const finalMin=slMin(s.finalTarget);
+    return slFmt(Math.max(finalMin, startMin-steps*s.stepMinutes));
+  }
+  const prior=SL.logs.filter(l=>l.date<dateKey && l.actualBedtime).sort((a,b)=>a.date<b.date?-1:1);
+  if(prior.length>=s.baselineDays){
+    const last=prior.slice(-s.baselineDays);
+    const avg=Math.round(last.reduce((sum,l)=>sum+slMin(l.actualBedtime),0)/last.length/5)*5;
+    const startTarget=slFmt(avg);
+    SL.progression={startDate:dateKey, startTarget};
+    return startTarget;
+  }
+  return null;
+}
+
+function slEnsureLog(dateKey){
+  let log=SL.logs.find(l=>l.date===dateKey);
+  if(!log){ log={date:dateKey, targetBedtime:null, actualBedtime:null, status:null, note:''}; SL.logs.push(log); }
+  return log;
+}
+
+function slEnsureToday(){
+  const todayKey=keyOf(new Date());
+  const log=slEnsureLog(todayKey);
+  if(log.actualBedtime===null) log.targetBedtime=slTargetFor(todayKey);
+  return log;
+}
+
+function slSetActual(dateKey, hhmm){
+  const log=slEnsureLog(dateKey);
+  if(log.targetBedtime===null) log.targetBedtime=slTargetFor(dateKey);
+  log.actualBedtime=hhmm;
+  log.status=slStatus(log.targetBedtime, hhmm, SL.settings.crisisThreshold);
+  slSave();
+}
+
+function slStreak(){
+  let d=new Date(); d.setHours(0,0,0,0);
+  const todayLog=SL.logs.find(l=>l.date===keyOf(d));
+  if(!todayLog || !todayLog.status) d.setDate(d.getDate()-1);
+  let streak=0;
+  while(true){
+    const log=SL.logs.find(l=>l.date===keyOf(d));
+    if(log && (log.status==='success'||log.status==='crisis_ok')){ streak++; d.setDate(d.getDate()-1); }
+    else break;
+  }
+  return streak;
+}
+
+const SL_STATUS_LABEL={ success:'Успех', crisis_ok:'Не идеально, но ок', missed:'Пропущено' };
+const SL_STATUS_COLOR={ success:'var(--teal-mid)', crisis_ok:'var(--amber)', missed:'var(--red)' };
+
+function slRender(){
+  slEnsureToday();
+  slSave();
+  document.getElementById('slStreak').textContent=slStreak();
+  slRenderToday();
+  slRenderWeek();
+  slRenderHistory();
+  slRenderSettings();
+}
+
+function slRenderToday(){
+  const todayKey=keyOf(new Date());
+  const log=SL.logs.find(l=>l.date===todayKey);
+  const badge=document.getElementById('slTodayBadge');
+  const manual=document.getElementById('slManualTime');
+  if(!log.actualBedtime){
+    badge.innerHTML=log.targetBedtime
+      ? 'Цель на сегодня: <b>'+log.targetBedtime+'</b>'
+      : 'Собираем историю сна — цель появится после '+SL.settings.baselineDays+' дней записей';
+    manual.value='';
+  }else{
+    const color=SL_STATUS_COLOR[log.status]||'var(--muted)';
+    const label=log.status?SL_STATUS_LABEL[log.status]:'История';
+    badge.innerHTML='<span style="color:'+color+'; font-weight:600;">'+label+'</span> · отбой в '+log.actualBedtime
+      +(log.targetBedtime?' (цель '+log.targetBedtime+')':'');
+    manual.value=log.actualBedtime;
+  }
+}
+
+function slRenderWeek(){
+  const today=new Date(); today.setHours(0,0,0,0);
+  const days=[];
+  for(let i=0;i<7;i++){ const d=new Date(today); d.setDate(d.getDate()-i); days.push(keyOf(d)); }
+  const withActual=SL.logs.filter(l=>days.includes(l.date) && l.actualBedtime);
+  const el=document.getElementById('slWeekSummary');
+  const todayLog=SL.logs.find(l=>l.date===keyOf(today));
+  const target=todayLog&&todayLog.targetBedtime;
+  if(!withActual.length){ el.textContent='Пока нет записей за неделю.'+(target?' Цель: '+target:''); return; }
+  const avg=Math.round(withActual.reduce((s,l)=>s+slMin(l.actualBedtime),0)/withActual.length);
+  el.textContent='Среднее время отбоя: '+slFmt(avg)+(target?' · цель: '+target:'');
+}
+
+function slRenderHistory(){
+  const el=document.getElementById('slHistory');
+  el.innerHTML='';
+  const today=new Date(); today.setHours(0,0,0,0);
+  for(let i=0;i<14;i++){
+    const d=new Date(today); d.setDate(d.getDate()-i);
+    const k=keyOf(d);
+    const log=SL.logs.find(l=>l.date===k);
+    const color=log&&log.status?(SL_STATUS_COLOR[log.status]||'var(--hint)'):'var(--hint)';
+    const label=log&&log.status?SL_STATUS_LABEL[log.status]:(log&&log.actualBedtime?'История':'Нет записи');
+    const card=document.createElement('div'); card.className='rem-card';
+    card.innerHTML='<div class="sl-dot" style="background:'+color+';"></div>'
+      +'<div class="rem-info"><div class="rem-title">'+fmtMain(d)+'</div>'
+      +'<div class="rem-meta">цель '+(log&&log.targetBedtime?log.targetBedtime:'—')+' · факт '+(log&&log.actualBedtime?log.actualBedtime:'—')+'</div></div>'
+      +'<div style="font-size:12px; color:'+color+'; font-weight:600; flex-shrink:0;">'+label+'</div>';
+    el.appendChild(card);
+  }
+}
+
+function slRenderSettings(){
+  document.getElementById('slStepMinutes').value=SL.settings.stepMinutes;
+  document.getElementById('slFinalTarget').value=SL.settings.finalTarget;
+  document.getElementById('slCrisisThreshold').value=SL.settings.crisisThreshold;
+  document.getElementById('slProgressionEveryDays').value=SL.settings.progressionEveryDays;
+  document.getElementById('slBaselineDays').value=SL.settings.baselineDays;
+}
+
+document.getElementById('slBedBtn').addEventListener('click',()=>{
+  const now=new Date();
+  const hhmm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  slSetActual(keyOf(now), hhmm);
+  slRender();
+});
+
+document.getElementById('slManualTime').addEventListener('change',e=>{
+  if(!e.target.value) return;
+  slSetActual(keyOf(new Date()), e.target.value);
+  slRender();
+});
+
+document.getElementById('slSettingsToggle').addEventListener('click',()=>{
+  const panel=document.getElementById('slSettingsPanel');
+  panel.style.display=panel.style.display==='none'?'block':'none';
+});
+
+['slStepMinutes','slFinalTarget','slCrisisThreshold','slProgressionEveryDays','slBaselineDays'].forEach(id=>{
+  document.getElementById(id).addEventListener('change',()=>{
+    SL.settings.stepMinutes=Number(document.getElementById('slStepMinutes').value)||15;
+    SL.settings.finalTarget=document.getElementById('slFinalTarget').value||'22:00';
+    SL.settings.crisisThreshold=document.getElementById('slCrisisThreshold').value||'23:00';
+    SL.settings.progressionEveryDays=Number(document.getElementById('slProgressionEveryDays').value)||3;
+    SL.settings.baselineDays=Number(document.getElementById('slBaselineDays').value)||3;
+    slSave();
+    slRender();
+  });
 });
 
 renderDay();
