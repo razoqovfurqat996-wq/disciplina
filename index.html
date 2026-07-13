@@ -371,7 +371,6 @@
     <button data-tab="stats">Стат.</button>
     <button data-tab="reports">Отчёты</button>
     <button data-tab="reminders">Напоминания</button>
-    <button data-tab="sleep">Сон</button>
   </div>
 </header>
 
@@ -541,65 +540,6 @@
   <div class="legend-note" id="remError" style="display:none; color:var(--red);"></div>
 </div>
 
-<div class="view" id="view-sleep">
-  <div class="datewrap">
-    <div><div class="today-date">Сон</div>
-    <div class="today-sub">Трекер отбоя</div></div>
-  </div>
-
-  <div class="stats" style="grid-template-columns:1fr;">
-    <div class="stat"><div class="num accent" id="slStreak">0</div><div class="lbl">серия дней подряд</div></div>
-  </div>
-
-  <div class="panel" style="margin-top:16px;">
-    <h2>Сегодня</h2>
-    <div id="slTodayBadge" style="margin-bottom:14px; font-size:14px; line-height:1.5;">—</div>
-    <button class="sl-bed-btn" id="slBedBtn" type="button">Лёг спать</button>
-    <div class="rem-field">
-      <label>Скорректировать время (сегодня)</label>
-      <input type="time" id="slManualTime">
-    </div>
-  </div>
-
-  <div class="panel" style="margin-top:16px;">
-    <h2>Неделя</h2>
-    <div class="legend-note" id="slWeekSummary" style="margin-top:0;">—</div>
-  </div>
-
-  <div class="panel" style="margin-top:16px;">
-    <h2>История <span class="hsub">14 дней</span></h2>
-    <div id="slHistory" style="display:flex; flex-direction:column; gap:8px; margin-top:10px;"></div>
-  </div>
-
-  <div class="foot" style="margin-top:16px;">
-    <button class="sl-settings-btn" id="slSettingsToggle" type="button">⚙ Настройки</button>
-  </div>
-
-  <div class="panel" id="slSettingsPanel" style="margin-top:16px; display:none;">
-    <h2>Настройки трекера сна</h2>
-    <div class="rem-field">
-      <label>Шаг сдвига (минут)</label>
-      <input type="number" id="slStepMinutes" min="1" max="120">
-    </div>
-    <div class="rem-field">
-      <label>Финальная цель</label>
-      <input type="time" id="slFinalTarget">
-    </div>
-    <div class="rem-field">
-      <label>Порог «ещё допустимо»</label>
-      <input type="time" id="slCrisisThreshold">
-    </div>
-    <div class="rem-field">
-      <label>Сдвигать каждые N дней</label>
-      <input type="number" id="slProgressionEveryDays" min="1" max="30">
-    </div>
-    <div class="rem-field">
-      <label>Дней на базовую линию</label>
-      <input type="number" id="slBaselineDays" min="1" max="14">
-    </div>
-  </div>
-</div>
-
 <div class="tk-modal" id="remModal" aria-hidden="true">
   <div class="tk-modal-card">
     <div class="tk-m-top">
@@ -697,6 +637,7 @@
     <textarea class="tk-m-note" id="hbNote" placeholder="Заметка"></textarea>
 
     <div class="rem-link-block" id="hbRemBlock"></div>
+    <div class="rem-link-block" id="hbSlBlock"></div>
 
     <div class="tk-m-foot">
       <button class="tk-m-del" id="hbReset">Сбросить</button>
@@ -769,6 +710,7 @@
     <textarea class="tk-m-note" id="tkmNote" placeholder="Заметка"></textarea>
 
     <div class="rem-link-block" id="tkRemBlock"></div>
+    <div class="rem-link-block" id="tkSlBlock"></div>
 
     <div class="tk-m-foot">
       <button class="tk-m-del" id="tkmDelete">Удалить</button>
@@ -929,6 +871,7 @@ function hbOpen(id){
   document.getElementById('hbMin').classList.toggle('on',!!hm.min);
   document.getElementById('hbMinLbl').textContent = hm.min?'Это «минимум»':'Отметить как «минимум»';
   remRenderLinkedBlock('hbRemBlock', id, t.name, 'hbModal');
+  slRenderLinkedBlock('hbSlBlock', id);
   document.getElementById('hbModal').classList.add('open');
 }
 function hbClose(){ document.getElementById('hbModal').classList.remove('open'); hbId=null; renderDay(); }
@@ -1218,7 +1161,6 @@ document.querySelectorAll('.tabs button').forEach(btn=>{
     if(btn.dataset.tab==='stats') renderStats();
     if(btn.dataset.tab==='tasks') tkRender();
     if(btn.dataset.tab==='reminders') remLoad();
-    if(btn.dataset.tab==='sleep') slRender();
   });
 });
 
@@ -1526,6 +1468,7 @@ function tkOpen(id){
   TK.lists.forEach(l=>{ const o=document.createElement('option'); o.value=l.id; o.textContent=l.name; if(l.id===t.listId)o.selected=true; sel.appendChild(o); });
   tkRenderSteps(t);
   remRenderLinkedBlock('tkRemBlock', t.id, t.title, 'tkModal');
+  slRenderLinkedBlock('tkSlBlock', t.id);
   document.getElementById('tkModal').classList.add('open');
 }
 function tkRenderSteps(t){
@@ -1777,18 +1720,26 @@ document.getElementById('remSaveBtn').addEventListener('click',async()=>{
   }
 });
 
-/* ================= SLEEP MODULE (Сон) ================= */
+/* ================= SLEEP MODULE (Сон) — attached per task/habit, like a reminder link ================= */
 const SLEEP_STORE = 'disciplina_sleep_v1';
 function slDefaultSettings(){ return { stepMinutes:15, finalTarget:'22:00', crisisThreshold:'23:00', progressionEveryDays:3, baselineDays:3 }; }
 function slLoad(){
   try{
     const raw=JSON.parse(localStorage.getItem(SLEEP_STORE));
-    if(!raw || typeof raw!=='object') throw 0;
-    return { settings:Object.assign(slDefaultSettings(), raw.settings||{}), logs:Array.isArray(raw.logs)?raw.logs:[], progression:raw.progression||null };
-  }catch(e){ return { settings:slDefaultSettings(), logs:[], progression:null }; }
+    if(!raw || !Array.isArray(raw.trackers)) throw 0;
+    return { trackers: raw.trackers };
+  }catch(e){ return { trackers: [] }; }
 }
 function slSave(){ try{ localStorage.setItem(SLEEP_STORE, JSON.stringify(SL)); }catch(e){} }
 let SL = slLoad();
+
+function slFindTracker(linkedId){ return SL.trackers.find(t=>t.linkedId===linkedId); }
+function slCreateTracker(linkedId){
+  const tracker={ id:'sl_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7), linkedId, settings:slDefaultSettings(), logs:[], progression:null };
+  SL.trackers.push(tracker);
+  slSave();
+  return tracker;
+}
 
 // times treated as minutes-since-midnight, with hours<12 pushed +24h so post-midnight bedtimes sort after evening ones
 function slMin(hhmm){ const p=hhmm.split(':'); const h=Number(p[0]), m=Number(p[1]); return (h<12?h+24:h)*60+m; }
@@ -1804,54 +1755,54 @@ function slStatus(target, actual, crisis){
 
 // resolves (and, the first time baseline is complete, freezes) the target for a date; only meant to be
 // called forward for "today" — past logs keep whatever target was frozen into them when they were closed
-function slTargetFor(dateKey){
-  const s=SL.settings;
-  if(SL.progression && dateKey>=SL.progression.startDate){
-    const days=Math.round((new Date(dateKey)-new Date(SL.progression.startDate))/86400000);
+function slTargetFor(tracker, dateKey){
+  const s=tracker.settings;
+  if(tracker.progression && dateKey>=tracker.progression.startDate){
+    const days=Math.round((new Date(dateKey)-new Date(tracker.progression.startDate))/86400000);
     const steps=Math.floor(days/s.progressionEveryDays);
-    const startMin=slMin(SL.progression.startTarget);
+    const startMin=slMin(tracker.progression.startTarget);
     const finalMin=slMin(s.finalTarget);
     return slFmt(Math.max(finalMin, startMin-steps*s.stepMinutes));
   }
-  const prior=SL.logs.filter(l=>l.date<dateKey && l.actualBedtime).sort((a,b)=>a.date<b.date?-1:1);
+  const prior=tracker.logs.filter(l=>l.date<dateKey && l.actualBedtime).sort((a,b)=>a.date<b.date?-1:1);
   if(prior.length>=s.baselineDays){
     const last=prior.slice(-s.baselineDays);
     const avg=Math.round(last.reduce((sum,l)=>sum+slMin(l.actualBedtime),0)/last.length/5)*5;
     const startTarget=slFmt(avg);
-    SL.progression={startDate:dateKey, startTarget};
+    tracker.progression={startDate:dateKey, startTarget};
     return startTarget;
   }
   return null;
 }
 
-function slEnsureLog(dateKey){
-  let log=SL.logs.find(l=>l.date===dateKey);
-  if(!log){ log={date:dateKey, targetBedtime:null, actualBedtime:null, status:null, note:''}; SL.logs.push(log); }
+function slEnsureLog(tracker, dateKey){
+  let log=tracker.logs.find(l=>l.date===dateKey);
+  if(!log){ log={date:dateKey, targetBedtime:null, actualBedtime:null, status:null, note:''}; tracker.logs.push(log); }
   return log;
 }
 
-function slEnsureToday(){
+function slEnsureToday(tracker){
   const todayKey=keyOf(new Date());
-  const log=slEnsureLog(todayKey);
-  if(log.actualBedtime===null) log.targetBedtime=slTargetFor(todayKey);
+  const log=slEnsureLog(tracker, todayKey);
+  if(log.actualBedtime===null) log.targetBedtime=slTargetFor(tracker, todayKey);
   return log;
 }
 
-function slSetActual(dateKey, hhmm){
-  const log=slEnsureLog(dateKey);
-  if(log.targetBedtime===null) log.targetBedtime=slTargetFor(dateKey);
+function slSetActual(tracker, dateKey, hhmm){
+  const log=slEnsureLog(tracker, dateKey);
+  if(log.targetBedtime===null) log.targetBedtime=slTargetFor(tracker, dateKey);
   log.actualBedtime=hhmm;
-  log.status=slStatus(log.targetBedtime, hhmm, SL.settings.crisisThreshold);
+  log.status=slStatus(log.targetBedtime, hhmm, tracker.settings.crisisThreshold);
   slSave();
 }
 
-function slStreak(){
+function slStreak(tracker){
   let d=new Date(); d.setHours(0,0,0,0);
-  const todayLog=SL.logs.find(l=>l.date===keyOf(d));
+  const todayLog=tracker.logs.find(l=>l.date===keyOf(d));
   if(!todayLog || !todayLog.status) d.setDate(d.getDate()-1);
   let streak=0;
   while(true){
-    const log=SL.logs.find(l=>l.date===keyOf(d));
+    const log=tracker.logs.find(l=>l.date===keyOf(d));
     if(log && (log.status==='success'||log.status==='crisis_ok')){ streak++; d.setDate(d.getDate()-1); }
     else break;
   }
@@ -1861,104 +1812,106 @@ function slStreak(){
 const SL_STATUS_LABEL={ success:'Успех', crisis_ok:'Не идеально, но ок', missed:'Пропущено' };
 const SL_STATUS_COLOR={ success:'var(--teal-mid)', crisis_ok:'var(--amber)', missed:'var(--red)' };
 
-function slRender(){
-  slEnsureToday();
-  slSave();
-  document.getElementById('slStreak').textContent=slStreak();
-  slRenderToday();
-  slRenderWeek();
-  slRenderHistory();
-  slRenderSettings();
-}
+// renders the "Сон" block inside a task/habit modal — mirrors remRenderLinkedBlock's connect/show pattern,
+// but the tracker (Сегодня + История, with серия/настройки collapsed) is shown inline rather than in its own modal
+function slRenderLinkedBlock(containerId, linkedId){
+  const el=document.getElementById(containerId);
+  const prevMore=document.getElementById(containerId+'_morebox');
+  const wasOpen=!!(prevMore && prevMore.style.display==='block');
 
-function slRenderToday(){
+  const tracker=slFindTracker(linkedId);
+  if(!tracker){
+    el.innerHTML='<div class="rem-link-row"><span class="rem-link-ic">🌙</span><div class="rem-link-status">Трекер сна не подключён</div><button class="rem-link-btn" type="button">Подключить</button></div>';
+    el.querySelector('.rem-link-btn').addEventListener('click',()=>{ slCreateTracker(linkedId); slRenderLinkedBlock(containerId, linkedId); });
+    return;
+  }
+
+  slEnsureToday(tracker);
+  slSave();
+
   const todayKey=keyOf(new Date());
-  const log=SL.logs.find(l=>l.date===todayKey);
-  const badge=document.getElementById('slTodayBadge');
-  const manual=document.getElementById('slManualTime');
+  const log=tracker.logs.find(l=>l.date===todayKey);
+  const s=tracker.settings;
+  const p=containerId;
+
+  let todayHtml;
   if(!log.actualBedtime){
-    badge.innerHTML=log.targetBedtime
+    todayHtml=log.targetBedtime
       ? 'Цель на сегодня: <b>'+log.targetBedtime+'</b>'
-      : 'Собираем историю сна — цель появится после '+SL.settings.baselineDays+' дней записей';
-    manual.value='';
+      : 'Собираем историю сна — цель появится после '+s.baselineDays+' дней записей';
   }else{
     const color=SL_STATUS_COLOR[log.status]||'var(--muted)';
     const label=log.status?SL_STATUS_LABEL[log.status]:'История';
-    badge.innerHTML='<span style="color:'+color+'; font-weight:600;">'+label+'</span> · отбой в '+log.actualBedtime
+    todayHtml='<span style="color:'+color+'; font-weight:600;">'+label+'</span> · отбой в '+log.actualBedtime
       +(log.targetBedtime?' (цель '+log.targetBedtime+')':'');
-    manual.value=log.actualBedtime;
   }
-}
 
-function slRenderWeek(){
   const today=new Date(); today.setHours(0,0,0,0);
-  const days=[];
-  for(let i=0;i<7;i++){ const d=new Date(today); d.setDate(d.getDate()-i); days.push(keyOf(d)); }
-  const withActual=SL.logs.filter(l=>days.includes(l.date) && l.actualBedtime);
-  const el=document.getElementById('slWeekSummary');
-  const todayLog=SL.logs.find(l=>l.date===keyOf(today));
-  const target=todayLog&&todayLog.targetBedtime;
-  if(!withActual.length){ el.textContent='Пока нет записей за неделю.'+(target?' Цель: '+target:''); return; }
-  const avg=Math.round(withActual.reduce((s,l)=>s+slMin(l.actualBedtime),0)/withActual.length);
-  el.textContent='Среднее время отбоя: '+slFmt(avg)+(target?' · цель: '+target:'');
-}
-
-function slRenderHistory(){
-  const el=document.getElementById('slHistory');
-  el.innerHTML='';
-  const today=new Date(); today.setHours(0,0,0,0);
+  let historyHtml='';
   for(let i=0;i<14;i++){
     const d=new Date(today); d.setDate(d.getDate()-i);
-    const k=keyOf(d);
-    const log=SL.logs.find(l=>l.date===k);
-    const color=log&&log.status?(SL_STATUS_COLOR[log.status]||'var(--hint)'):'var(--hint)';
-    const label=log&&log.status?SL_STATUS_LABEL[log.status]:(log&&log.actualBedtime?'История':'Нет записи');
-    const card=document.createElement('div'); card.className='rem-card';
-    card.innerHTML='<div class="sl-dot" style="background:'+color+';"></div>'
+    const l=tracker.logs.find(x=>x.date===keyOf(d));
+    const color=l&&l.status?(SL_STATUS_COLOR[l.status]||'var(--hint)'):'var(--hint)';
+    const label=l&&l.status?SL_STATUS_LABEL[l.status]:(l&&l.actualBedtime?'История':'Нет записи');
+    historyHtml+='<div class="rem-card"><div class="sl-dot" style="background:'+color+';"></div>'
       +'<div class="rem-info"><div class="rem-title">'+fmtMain(d)+'</div>'
-      +'<div class="rem-meta">цель '+(log&&log.targetBedtime?log.targetBedtime:'—')+' · факт '+(log&&log.actualBedtime?log.actualBedtime:'—')+'</div></div>'
-      +'<div style="font-size:12px; color:'+color+'; font-weight:600; flex-shrink:0;">'+label+'</div>';
-    el.appendChild(card);
+      +'<div class="rem-meta">цель '+(l&&l.targetBedtime?l.targetBedtime:'—')+' · факт '+(l&&l.actualBedtime?l.actualBedtime:'—')+'</div></div>'
+      +'<div style="font-size:12px; color:'+color+'; font-weight:600; flex-shrink:0;">'+label+'</div></div>';
   }
-}
 
-function slRenderSettings(){
-  document.getElementById('slStepMinutes').value=SL.settings.stepMinutes;
-  document.getElementById('slFinalTarget').value=SL.settings.finalTarget;
-  document.getElementById('slCrisisThreshold').value=SL.settings.crisisThreshold;
-  document.getElementById('slProgressionEveryDays').value=SL.settings.progressionEveryDays;
-  document.getElementById('slBaselineDays').value=SL.settings.baselineDays;
-}
+  const days7=[]; for(let i=0;i<7;i++){ const d=new Date(today); d.setDate(d.getDate()-i); days7.push(keyOf(d)); }
+  const withActual=tracker.logs.filter(l=>days7.includes(l.date) && l.actualBedtime);
+  const weekText=withActual.length
+    ? 'Среднее время отбоя: '+slFmt(Math.round(withActual.reduce((sum,l)=>sum+slMin(l.actualBedtime),0)/withActual.length))+(log.targetBedtime?' · цель: '+log.targetBedtime:'')
+    : 'Пока нет записей за неделю.'+(log.targetBedtime?' Цель: '+log.targetBedtime:'');
 
-document.getElementById('slBedBtn').addEventListener('click',()=>{
-  const now=new Date();
-  const hhmm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-  slSetActual(keyOf(now), hhmm);
-  slRender();
-});
+  el.innerHTML=
+    '<div class="rem-link-row"><span class="rem-link-ic">🌙</span><div class="rem-link-status">Трекер сна подключён</div></div>'
+    +'<div style="margin-top:10px; font-size:13px; line-height:1.5;">'+todayHtml+'</div>'
+    +'<button class="sl-bed-btn" type="button" id="'+p+'_bed" style="margin-top:10px;">Лёг спать</button>'
+    +'<div class="rem-field"><label>Скорректировать время (сегодня)</label><input type="time" id="'+p+'_manual" value="'+(log.actualBedtime||'')+'"></div>'
+    +'<div class="rem-meta" style="margin-top:16px; font-weight:700; text-transform:uppercase; font-size:11px; letter-spacing:.04em;">История · 14 дней</div>'
+    +'<div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">'+historyHtml+'</div>'
+    +'<button class="sl-settings-btn" type="button" id="'+p+'_more" style="margin-top:12px; width:100%;">▾ Серия и настройки</button>'
+    +'<div id="'+p+'_morebox" style="display:none; margin-top:12px;">'
+      +'<div class="stat" style="text-align:left; margin-bottom:10px;"><div class="num accent">'+slStreak(tracker)+'</div><div class="lbl">серия дней подряд</div></div>'
+      +'<div class="legend-note" style="margin:0 0 12px; text-align:left;">'+weekText+'</div>'
+      +'<div class="rem-field"><label>Шаг сдвига (минут)</label><input type="number" min="1" max="120" id="'+p+'_step" value="'+s.stepMinutes+'"></div>'
+      +'<div class="rem-field"><label>Финальная цель</label><input type="time" id="'+p+'_final" value="'+s.finalTarget+'"></div>'
+      +'<div class="rem-field"><label>Порог «ещё допустимо»</label><input type="time" id="'+p+'_crisis" value="'+s.crisisThreshold+'"></div>'
+      +'<div class="rem-field"><label>Сдвигать каждые N дней</label><input type="number" min="1" max="30" id="'+p+'_every" value="'+s.progressionEveryDays+'"></div>'
+      +'<div class="rem-field"><label>Дней на базовую линию</label><input type="number" min="1" max="14" id="'+p+'_baseline" value="'+s.baselineDays+'"></div>'
+    +'</div>';
 
-document.getElementById('slManualTime').addEventListener('change',e=>{
-  if(!e.target.value) return;
-  slSetActual(keyOf(new Date()), e.target.value);
-  slRender();
-});
+  if(wasOpen) document.getElementById(p+'_morebox').style.display='block';
 
-document.getElementById('slSettingsToggle').addEventListener('click',()=>{
-  const panel=document.getElementById('slSettingsPanel');
-  panel.style.display=panel.style.display==='none'?'block':'none';
-});
-
-['slStepMinutes','slFinalTarget','slCrisisThreshold','slProgressionEveryDays','slBaselineDays'].forEach(id=>{
-  document.getElementById(id).addEventListener('change',()=>{
-    SL.settings.stepMinutes=Number(document.getElementById('slStepMinutes').value)||15;
-    SL.settings.finalTarget=document.getElementById('slFinalTarget').value||'22:00';
-    SL.settings.crisisThreshold=document.getElementById('slCrisisThreshold').value||'23:00';
-    SL.settings.progressionEveryDays=Number(document.getElementById('slProgressionEveryDays').value)||3;
-    SL.settings.baselineDays=Number(document.getElementById('slBaselineDays').value)||3;
-    slSave();
-    slRender();
+  document.getElementById(p+'_bed').addEventListener('click',()=>{
+    const now=new Date();
+    const hhmm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    slSetActual(tracker, keyOf(now), hhmm);
+    slRenderLinkedBlock(containerId, linkedId);
   });
-});
+  document.getElementById(p+'_manual').addEventListener('change',e=>{
+    if(!e.target.value) return;
+    slSetActual(tracker, keyOf(new Date()), e.target.value);
+    slRenderLinkedBlock(containerId, linkedId);
+  });
+  document.getElementById(p+'_more').addEventListener('click',()=>{
+    const box=document.getElementById(p+'_morebox');
+    box.style.display = box.style.display==='none' ? 'block' : 'none';
+  });
+  ['step','final','crisis','every','baseline'].forEach(suffix=>{
+    document.getElementById(p+'_'+suffix).addEventListener('change',()=>{
+      tracker.settings.stepMinutes=Number(document.getElementById(p+'_step').value)||15;
+      tracker.settings.finalTarget=document.getElementById(p+'_final').value||'22:00';
+      tracker.settings.crisisThreshold=document.getElementById(p+'_crisis').value||'23:00';
+      tracker.settings.progressionEveryDays=Number(document.getElementById(p+'_every').value)||3;
+      tracker.settings.baselineDays=Number(document.getElementById(p+'_baseline').value)||3;
+      slSave();
+      slRenderLinkedBlock(containerId, linkedId);
+    });
+  });
+}
 
 renderDay();
 remLoad();
