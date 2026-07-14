@@ -1949,7 +1949,7 @@ function slRenderLinkedBlock(containerId, linkedId, defaultTitle){
   const settingsHtml = isCount
     ? '<div class="rem-field"><label>Цель в день</label><input type="number" min="1" id="'+p+'_target" value="'+s.target+'"></div>'
       +'<div class="rem-field"><label>Единица измерения</label><input type="text" id="'+p+'_unit" value="'+tkEsc(s.unit||'')+'"></div>'
-    : '<div class="rem-field"><label>Шаг сдвига (минут)</label><input type="number" min="1" max="120" id="'+p+'_step" value="'+s.stepMinutes+'"></div>'
+    : '<div class="rem-field"><label>Шаг сдвига (минут)</label><input type="number" min="0" max="120" id="'+p+'_step" value="'+s.stepMinutes+'"></div>'
       +'<div class="rem-field"><label>Финальная цель</label><input type="time" id="'+p+'_final" value="'+s.finalTarget+'"></div>'
       +'<div class="rem-field"><label>Порог «ещё допустимо»</label><input type="time" id="'+p+'_crisis" value="'+s.crisisThreshold+'"></div>'
       +'<div class="rem-field"><label>Сдвигать каждые N дней</label><input type="number" min="1" max="30" id="'+p+'_every" value="'+s.progressionEveryDays+'"></div>'
@@ -2015,7 +2015,8 @@ function slRenderLinkedBlock(containerId, linkedId, defaultTitle){
         tracker.settings.target=Number(document.getElementById(p+'_target').value)||1;
         tracker.settings.unit=document.getElementById(p+'_unit').value.trim();
       }else{
-        tracker.settings.stepMinutes=Number(document.getElementById(p+'_step').value)||15;
+        const stepVal=Number(document.getElementById(p+'_step').value);
+        tracker.settings.stepMinutes=Number.isNaN(stepVal)?15:stepVal;
         tracker.settings.finalTarget=document.getElementById(p+'_final').value||'22:00';
         tracker.settings.crisisThreshold=document.getElementById(p+'_crisis').value||'23:00';
         tracker.settings.progressionEveryDays=Number(document.getElementById(p+'_every').value)||3;
