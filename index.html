@@ -1173,7 +1173,17 @@ document.getElementById('hardToggle').addEventListener('change',e=>{ hardMode=e.
 document.getElementById('resetBtn').addEventListener('click',()=>{ if(confirm('Сбросить отметки за '+fmtMain(view)+'?')){ const all=load();delete all[keyOf(view)];save(all);renderDay(); } });
 document.getElementById('blockBack').addEventListener('click',()=>{ dayMode='home'; renderDay(); });
 document.querySelectorAll('.rep-btn:not(#pushBtn)').forEach(b=>b.addEventListener('click',()=>runReport(b.dataset.report)));
-document.getElementById('exportAll').addEventListener('click',()=>{ download('disciplina-backup-'+keyOf(new Date())+'.json', localStorage.getItem(STORE)||'{}','application/json'); });
+document.getElementById('exportAll').addEventListener('click',()=>{
+  const parseOr=(key, fallback)=>{ try{ return JSON.parse(localStorage.getItem(key)) ?? fallback; }catch(e){ return fallback; } };
+  const backup={
+    habits: parseOr(STORE, {}),
+    habitMeta: parseOr(HM_STORE, {}),
+    tasks: parseOr(TK_STORE, null),
+    trackers: parseOr(SLEEP_STORE, {trackers:[]}),
+    uiState: parseOr(OPEN_STORE, {0:true})
+  };
+  download('disciplina-backup-'+keyOf(new Date())+'.json', JSON.stringify(backup), 'application/json');
+});
 
 /* ================= TASKS MODULE (To Do) ================= */
 const TK_STORE='disciplina_tasks_v3';
