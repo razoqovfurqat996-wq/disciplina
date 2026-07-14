@@ -871,7 +871,7 @@ function hbOpen(id){
   document.getElementById('hbMin').classList.toggle('on',!!hm.min);
   document.getElementById('hbMinLbl').textContent = hm.min?'Это «минимум»':'Отметить как «минимум»';
   remRenderLinkedBlock('hbRemBlock', id, t.name, 'hbModal');
-  slRenderLinkedBlock('hbSlBlock', id);
+  slRenderLinkedBlock('hbSlBlock', id, t.name);
   document.getElementById('hbModal').classList.add('open');
 }
 function hbClose(){ document.getElementById('hbModal').classList.remove('open'); hbId=null; renderDay(); }
@@ -1468,7 +1468,7 @@ function tkOpen(id){
   TK.lists.forEach(l=>{ const o=document.createElement('option'); o.value=l.id; o.textContent=l.name; if(l.id===t.listId)o.selected=true; sel.appendChild(o); });
   tkRenderSteps(t);
   remRenderLinkedBlock('tkRemBlock', t.id, t.title, 'tkModal');
-  slRenderLinkedBlock('tkSlBlock', t.id);
+  slRenderLinkedBlock('tkSlBlock', t.id, t.title);
   document.getElementById('tkModal').classList.add('open');
 }
 function tkRenderSteps(t){
@@ -1720,13 +1720,35 @@ document.getElementById('remSaveBtn').addEventListener('click',async()=>{
   }
 });
 
-/* ================= SLEEP MODULE (Сон) — attached per task/habit, like a reminder link ================= */
+/* ================= TRACKER MODULE — a generic per-task/habit tracker (time-of-day or daily count),
+   attached like a reminder link. Each task gets its own independent tracker: own name, own type, own settings. ================= */
 const SLEEP_STORE = 'disciplina_sleep_v1';
-function slDefaultSettings(){ return { stepMinutes:15, finalTarget:'22:00', crisisThreshold:'23:00', progressionEveryDays:3, baselineDays:3 }; }
+function slDefaultSettingsFor(type){
+  return type==='count'
+    ? { target:1, unit:'' }
+    : { stepMinutes:15, finalTarget:'22:00', crisisThreshold:'23:00', progressionEveryDays:3, baselineDays:3 };
+}
 function slLoad(){
   try{
     const raw=JSON.parse(localStorage.getItem(SLEEP_STORE));
     if(!raw || !Array.isArray(raw.trackers)) throw 0;
+    // migrate legacy (pre-generic, bedtime-only) trackers: targetBedtime/actualBedtime -> target/actual, tag type:'time'
+    raw.trackers.forEach(t=>{
+      if(!t.type) t.type='time';
+      if(!t.name){
+        const habit=ALL_TASKS.find(x=>x.id===t.linkedId);
+        const task=TK.tasks.find(x=>x.id===t.linkedId);
+        t.name=(habit&&habit.name)||(task&&task.title)||'Трекер';
+      }
+      if(!t.settings) t.settings=slDefaultSettingsFor(t.type);
+      t.logs=(t.logs||[]).map(l=>({
+        date:l.date,
+        target: l.target!==undefined ? l.target : (l.targetBedtime!==undefined ? l.targetBedtime : null),
+        actual: l.actual!==undefined ? l.actual : (l.actualBedtime!==undefined ? l.actualBedtime : null),
+        status:l.status||null,
+        note:l.note||''
+      }));
+    });
     return { trackers: raw.trackers };
   }catch(e){ return { trackers: [] }; }
 }
@@ -1734,26 +1756,32 @@ function slSave(){ try{ localStorage.setItem(SLEEP_STORE, JSON.stringify(SL)); }
 let SL = slLoad();
 
 function slFindTracker(linkedId){ return SL.trackers.find(t=>t.linkedId===linkedId); }
-function slCreateTracker(linkedId){
-  const tracker={ id:'sl_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7), linkedId, settings:slDefaultSettings(), logs:[], progression:null };
+function slCreateTracker(linkedId, name, type, extraSettings){
+  const tracker={
+    id:'sl_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),
+    linkedId, name: name||'Трекер', type,
+    settings: Object.assign(slDefaultSettingsFor(type), extraSettings||{}),
+    logs:[], progression: type==='time' ? null : undefined
+  };
   SL.trackers.push(tracker);
   slSave();
   return tracker;
 }
 
-// times treated as minutes-since-midnight, with hours<12 pushed +24h so post-midnight bedtimes sort after evening ones
+// times treated as minutes-since-midnight, with hours<12 pushed +24h so post-midnight times sort after evening ones
 function slMin(hhmm){ const p=hhmm.split(':'); const h=Number(p[0]), m=Number(p[1]); return (h<12?h+24:h)*60+m; }
 function slFmt(min){ min=((min%1440)+1440)%1440; const h=Math.floor(min/60), m=min%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); }
 
-function slStatus(target, actual, crisis){
+function slTimeStatus(target, actual, crisis){
   if(!target) return null;
   const a=slMin(actual), t=slMin(target), c=slMin(crisis);
   if(a<=t) return 'success';
   if(a<=c) return 'crisis_ok';
   return 'missed';
 }
+function slCountStatus(target, actual){ return actual>=target ? 'success' : 'missed'; }
 
-// resolves (and, the first time baseline is complete, freezes) the target for a date; only meant to be
+// resolves (and, the first time baseline is complete, freezes) the time-type target for a date; only meant to be
 // called forward for "today" — past logs keep whatever target was frozen into them when they were closed
 function slTargetFor(tracker, dateKey){
   const s=tracker.settings;
@@ -1764,10 +1792,10 @@ function slTargetFor(tracker, dateKey){
     const finalMin=slMin(s.finalTarget);
     return slFmt(Math.max(finalMin, startMin-steps*s.stepMinutes));
   }
-  const prior=tracker.logs.filter(l=>l.date<dateKey && l.actualBedtime).sort((a,b)=>a.date<b.date?-1:1);
+  const prior=tracker.logs.filter(l=>l.date<dateKey && l.actual).sort((a,b)=>a.date<b.date?-1:1);
   if(prior.length>=s.baselineDays){
     const last=prior.slice(-s.baselineDays);
-    const avg=Math.round(last.reduce((sum,l)=>sum+slMin(l.actualBedtime),0)/last.length/5)*5;
+    const avg=Math.round(last.reduce((sum,l)=>sum+slMin(l.actual),0)/last.length/5)*5;
     const startTarget=slFmt(avg);
     tracker.progression={startDate:dateKey, startTarget};
     return startTarget;
@@ -1777,22 +1805,26 @@ function slTargetFor(tracker, dateKey){
 
 function slEnsureLog(tracker, dateKey){
   let log=tracker.logs.find(l=>l.date===dateKey);
-  if(!log){ log={date:dateKey, targetBedtime:null, actualBedtime:null, status:null, note:''}; tracker.logs.push(log); }
+  if(!log){ log={date:dateKey, target:null, actual:null, status:null, note:''}; tracker.logs.push(log); }
   return log;
 }
 
 function slEnsureToday(tracker){
   const todayKey=keyOf(new Date());
   const log=slEnsureLog(tracker, todayKey);
-  if(log.actualBedtime===null) log.targetBedtime=slTargetFor(tracker, todayKey);
+  if(log.actual===null || log.actual===undefined){
+    log.target = tracker.type==='count' ? tracker.settings.target : slTargetFor(tracker, todayKey);
+  }
   return log;
 }
 
-function slSetActual(tracker, dateKey, hhmm){
+function slSetActual(tracker, dateKey, value){
   const log=slEnsureLog(tracker, dateKey);
-  if(log.targetBedtime===null) log.targetBedtime=slTargetFor(tracker, dateKey);
-  log.actualBedtime=hhmm;
-  log.status=slStatus(log.targetBedtime, hhmm, tracker.settings.crisisThreshold);
+  if(log.target===null || log.target===undefined){
+    log.target = tracker.type==='count' ? tracker.settings.target : slTargetFor(tracker, dateKey);
+  }
+  log.actual=value;
+  log.status = tracker.type==='count' ? slCountStatus(log.target, value) : slTimeStatus(log.target, value, tracker.settings.crisisThreshold);
   slSave();
 }
 
@@ -1812,17 +1844,44 @@ function slStreak(tracker){
 const SL_STATUS_LABEL={ success:'Успех', crisis_ok:'Не идеально, но ок', missed:'Пропущено' };
 const SL_STATUS_COLOR={ success:'var(--teal-mid)', crisis_ok:'var(--amber)', missed:'var(--red)' };
 
-// renders the "Сон" block inside a task/habit modal — mirrors remRenderLinkedBlock's connect/show pattern,
+function slFmtVal(tracker, v){ if(v===null||v===undefined) return '—'; return tracker.type==='count' ? (v+(tracker.settings.unit?' '+tracker.settings.unit:'')) : v; }
+
+// renders the tracker block inside a task/habit modal — mirrors remRenderLinkedBlock's connect/show pattern,
 // but the tracker (Сегодня + История, with серия/настройки collapsed) is shown inline rather than in its own modal
-function slRenderLinkedBlock(containerId, linkedId){
+function slRenderLinkedBlock(containerId, linkedId, defaultTitle){
   const el=document.getElementById(containerId);
   const prevMore=document.getElementById(containerId+'_morebox');
   const wasOpen=!!(prevMore && prevMore.style.display==='block');
+  const p=containerId;
 
   const tracker=slFindTracker(linkedId);
   if(!tracker){
-    el.innerHTML='<div class="rem-link-row"><span class="rem-link-ic">🌙</span><div class="rem-link-status">Трекер сна не подключён</div><button class="rem-link-btn" type="button">Подключить</button></div>';
-    el.querySelector('.rem-link-btn').addEventListener('click',()=>{ slCreateTracker(linkedId); slRenderLinkedBlock(containerId, linkedId); });
+    el.innerHTML='<div class="rem-link-row"><span class="rem-link-ic">📊</span><div class="rem-link-status">Трекер не подключён</div></div>'
+      +'<div class="rem-field"><label>Название трекера</label><input type="text" id="'+p+'_name" value="'+tkEsc(defaultTitle||'Трекер')+'"></div>'
+      +'<div class="rem-field"><label>Тип</label><select id="'+p+'_type">'
+        +'<option value="time">Время (например, отбой)</option>'
+        +'<option value="count">Количество (например, стаканы воды)</option>'
+      +'</select></div>'
+      +'<div class="rem-field" id="'+p+'_targetWrap" style="display:none;"><label>Цель в день</label><input type="number" min="1" id="'+p+'_target" value="1"></div>'
+      +'<div class="rem-field" id="'+p+'_unitWrap" style="display:none;"><label>Единица измерения</label><input type="text" id="'+p+'_unit" placeholder="напр. стаканов"></div>'
+      +'<button class="sl-bed-btn" type="button" id="'+p+'_create">Подключить</button>';
+    const typeSel=document.getElementById(p+'_type');
+    const syncType=()=>{
+      const isCount=typeSel.value==='count';
+      document.getElementById(p+'_targetWrap').style.display=isCount?'block':'none';
+      document.getElementById(p+'_unitWrap').style.display=isCount?'block':'none';
+    };
+    typeSel.addEventListener('change', syncType);
+    syncType();
+    document.getElementById(p+'_create').addEventListener('click',()=>{
+      const name=document.getElementById(p+'_name').value.trim()||defaultTitle||'Трекер';
+      const type=typeSel.value;
+      const extra = type==='count'
+        ? { target:Number(document.getElementById(p+'_target').value)||1, unit:document.getElementById(p+'_unit').value.trim() }
+        : {};
+      slCreateTracker(linkedId, name, type, extra);
+      slRenderLinkedBlock(containerId, linkedId, defaultTitle);
+    });
     return;
   }
 
@@ -1832,18 +1891,18 @@ function slRenderLinkedBlock(containerId, linkedId){
   const todayKey=keyOf(new Date());
   const log=tracker.logs.find(l=>l.date===todayKey);
   const s=tracker.settings;
-  const p=containerId;
+  const isCount=tracker.type==='count';
 
   let todayHtml;
-  if(!log.actualBedtime){
-    todayHtml=log.targetBedtime
-      ? 'Цель на сегодня: <b>'+log.targetBedtime+'</b>'
-      : 'Собираем историю сна — цель появится после '+s.baselineDays+' дней записей';
+  if(log.actual===null || log.actual===undefined){
+    todayHtml = log.target
+      ? 'Цель на сегодня: <b>'+slFmtVal(tracker, log.target)+'</b>'
+      : (isCount ? 'Цель: '+slFmtVal(tracker, s.target) : 'Собираем историю — цель появится после '+s.baselineDays+' дней записей');
   }else{
     const color=SL_STATUS_COLOR[log.status]||'var(--muted)';
     const label=log.status?SL_STATUS_LABEL[log.status]:'История';
-    todayHtml='<span style="color:'+color+'; font-weight:600;">'+label+'</span> · отбой в '+log.actualBedtime
-      +(log.targetBedtime?' (цель '+log.targetBedtime+')':'');
+    todayHtml='<span style="color:'+color+'; font-weight:600;">'+label+'</span> · сегодня: '+slFmtVal(tracker, log.actual)
+      +(log.target?' (цель '+slFmtVal(tracker, log.target)+')':'');
   }
 
   const today=new Date(); today.setHours(0,0,0,0);
@@ -1852,63 +1911,108 @@ function slRenderLinkedBlock(containerId, linkedId){
     const d=new Date(today); d.setDate(d.getDate()-i);
     const l=tracker.logs.find(x=>x.date===keyOf(d));
     const color=l&&l.status?(SL_STATUS_COLOR[l.status]||'var(--hint)'):'var(--hint)';
-    const label=l&&l.status?SL_STATUS_LABEL[l.status]:(l&&l.actualBedtime?'История':'Нет записи');
+    const label=l&&l.status?SL_STATUS_LABEL[l.status]:(l&&l.actual!==null&&l.actual!==undefined?'История':'Нет записи');
     historyHtml+='<div class="rem-card"><div class="sl-dot" style="background:'+color+';"></div>'
       +'<div class="rem-info"><div class="rem-title">'+fmtMain(d)+'</div>'
-      +'<div class="rem-meta">цель '+(l&&l.targetBedtime?l.targetBedtime:'—')+' · факт '+(l&&l.actualBedtime?l.actualBedtime:'—')+'</div></div>'
+      +'<div class="rem-meta">цель '+slFmtVal(tracker, l&&l.target)+' · факт '+slFmtVal(tracker, l&&l.actual)+'</div></div>'
       +'<div style="font-size:12px; color:'+color+'; font-weight:600; flex-shrink:0;">'+label+'</div></div>';
   }
 
   const days7=[]; for(let i=0;i<7;i++){ const d=new Date(today); d.setDate(d.getDate()-i); days7.push(keyOf(d)); }
-  const withActual=tracker.logs.filter(l=>days7.includes(l.date) && l.actualBedtime);
-  const weekText=withActual.length
-    ? 'Среднее время отбоя: '+slFmt(Math.round(withActual.reduce((sum,l)=>sum+slMin(l.actualBedtime),0)/withActual.length))+(log.targetBedtime?' · цель: '+log.targetBedtime:'')
-    : 'Пока нет записей за неделю.'+(log.targetBedtime?' Цель: '+log.targetBedtime:'');
+  const withActual=tracker.logs.filter(l=>days7.includes(l.date) && l.actual!==null && l.actual!==undefined);
+  let weekText;
+  if(!withActual.length){
+    weekText='Пока нет записей за неделю.'+(log.target?' Цель: '+slFmtVal(tracker, log.target):'');
+  }else if(isCount){
+    const avg=(withActual.reduce((sum,l)=>sum+Number(l.actual),0)/withActual.length).toFixed(1);
+    weekText='Среднее за неделю: '+avg+(s.unit?' '+s.unit:'')+(log.target?' · цель: '+slFmtVal(tracker, log.target):'');
+  }else{
+    weekText='Среднее время: '+slFmt(Math.round(withActual.reduce((sum,l)=>sum+slMin(l.actual),0)/withActual.length))+(log.target?' · цель: '+log.target:'');
+  }
+
+  const todayInputHtml = isCount
+    ? '<div class="rem-field"><label>Значение за сегодня'+(s.unit?' ('+tkEsc(s.unit)+')':'')+'</label><input type="number" min="0" id="'+p+'_manual" value="'+(log.actual!==null&&log.actual!==undefined?log.actual:'')+'"></div>'
+      +'<div style="display:flex; gap:8px; margin-top:8px;"><button class="sl-bed-btn" type="button" id="'+p+'_plus" style="flex:1; margin-top:0;">+1</button><button class="sl-settings-btn" type="button" id="'+p+'_save" style="flex:1;">Сохранить</button></div>'
+    : '<button class="sl-bed-btn" type="button" id="'+p+'_bed" style="margin-top:10px;">Отметить сейчас</button>'
+      +'<div class="rem-field"><label>Скорректировать время (сегодня)</label><input type="time" id="'+p+'_manual" value="'+(log.actual||'')+'"></div>';
+
+  const settingsHtml = isCount
+    ? '<div class="rem-field"><label>Цель в день</label><input type="number" min="1" id="'+p+'_target" value="'+s.target+'"></div>'
+      +'<div class="rem-field"><label>Единица измерения</label><input type="text" id="'+p+'_unit" value="'+tkEsc(s.unit||'')+'"></div>'
+    : '<div class="rem-field"><label>Шаг сдвига (минут)</label><input type="number" min="1" max="120" id="'+p+'_step" value="'+s.stepMinutes+'"></div>'
+      +'<div class="rem-field"><label>Финальная цель</label><input type="time" id="'+p+'_final" value="'+s.finalTarget+'"></div>'
+      +'<div class="rem-field"><label>Порог «ещё допустимо»</label><input type="time" id="'+p+'_crisis" value="'+s.crisisThreshold+'"></div>'
+      +'<div class="rem-field"><label>Сдвигать каждые N дней</label><input type="number" min="1" max="30" id="'+p+'_every" value="'+s.progressionEveryDays+'"></div>'
+      +'<div class="rem-field"><label>Дней на базовую линию</label><input type="number" min="1" max="14" id="'+p+'_baseline" value="'+s.baselineDays+'"></div>';
 
   el.innerHTML=
-    '<div class="rem-link-row"><span class="rem-link-ic">🌙</span><div class="rem-link-status">Трекер сна подключён</div></div>'
+    '<div class="rem-link-row"><span class="rem-link-ic">📊</span><div class="rem-link-status">'+tkEsc(tracker.name)+'</div></div>'
     +'<div style="margin-top:10px; font-size:13px; line-height:1.5;">'+todayHtml+'</div>'
-    +'<button class="sl-bed-btn" type="button" id="'+p+'_bed" style="margin-top:10px;">Лёг спать</button>'
-    +'<div class="rem-field"><label>Скорректировать время (сегодня)</label><input type="time" id="'+p+'_manual" value="'+(log.actualBedtime||'')+'"></div>'
+    +todayInputHtml
     +'<div class="rem-meta" style="margin-top:16px; font-weight:700; text-transform:uppercase; font-size:11px; letter-spacing:.04em;">История · 14 дней</div>'
     +'<div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">'+historyHtml+'</div>'
     +'<button class="sl-settings-btn" type="button" id="'+p+'_more" style="margin-top:12px; width:100%;">▾ Серия и настройки</button>'
     +'<div id="'+p+'_morebox" style="display:none; margin-top:12px;">'
       +'<div class="stat" style="text-align:left; margin-bottom:10px;"><div class="num accent">'+slStreak(tracker)+'</div><div class="lbl">серия дней подряд</div></div>'
       +'<div class="legend-note" style="margin:0 0 12px; text-align:left;">'+weekText+'</div>'
-      +'<div class="rem-field"><label>Шаг сдвига (минут)</label><input type="number" min="1" max="120" id="'+p+'_step" value="'+s.stepMinutes+'"></div>'
-      +'<div class="rem-field"><label>Финальная цель</label><input type="time" id="'+p+'_final" value="'+s.finalTarget+'"></div>'
-      +'<div class="rem-field"><label>Порог «ещё допустимо»</label><input type="time" id="'+p+'_crisis" value="'+s.crisisThreshold+'"></div>'
-      +'<div class="rem-field"><label>Сдвигать каждые N дней</label><input type="number" min="1" max="30" id="'+p+'_every" value="'+s.progressionEveryDays+'"></div>'
-      +'<div class="rem-field"><label>Дней на базовую линию</label><input type="number" min="1" max="14" id="'+p+'_baseline" value="'+s.baselineDays+'"></div>'
+      +'<div class="rem-field"><label>Название трекера</label><input type="text" id="'+p+'_name" value="'+tkEsc(tracker.name)+'"></div>'
+      +settingsHtml
     +'</div>';
 
   if(wasOpen) document.getElementById(p+'_morebox').style.display='block';
 
-  document.getElementById(p+'_bed').addEventListener('click',()=>{
-    const now=new Date();
-    const hhmm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-    slSetActual(tracker, keyOf(now), hhmm);
-    slRenderLinkedBlock(containerId, linkedId);
-  });
-  document.getElementById(p+'_manual').addEventListener('change',e=>{
-    if(!e.target.value) return;
-    slSetActual(tracker, keyOf(new Date()), e.target.value);
-    slRenderLinkedBlock(containerId, linkedId);
-  });
+  if(isCount){
+    document.getElementById(p+'_plus').addEventListener('click',()=>{
+      const cur=(log.actual!==null && log.actual!==undefined) ? Number(log.actual) : 0;
+      slSetActual(tracker, keyOf(new Date()), cur+1);
+      slRenderLinkedBlock(containerId, linkedId, defaultTitle);
+    });
+    document.getElementById(p+'_save').addEventListener('click',()=>{
+      const v=document.getElementById(p+'_manual').value;
+      if(v==='') return;
+      slSetActual(tracker, keyOf(new Date()), Number(v));
+      slRenderLinkedBlock(containerId, linkedId, defaultTitle);
+    });
+  }else{
+    document.getElementById(p+'_bed').addEventListener('click',()=>{
+      const now=new Date();
+      const hhmm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+      slSetActual(tracker, keyOf(now), hhmm);
+      slRenderLinkedBlock(containerId, linkedId, defaultTitle);
+    });
+    document.getElementById(p+'_manual').addEventListener('change',e=>{
+      if(!e.target.value) return;
+      slSetActual(tracker, keyOf(new Date()), e.target.value);
+      slRenderLinkedBlock(containerId, linkedId, defaultTitle);
+    });
+  }
+
   document.getElementById(p+'_more').addEventListener('click',()=>{
     const box=document.getElementById(p+'_morebox');
     box.style.display = box.style.display==='none' ? 'block' : 'none';
   });
-  ['step','final','crisis','every','baseline'].forEach(suffix=>{
+
+  document.getElementById(p+'_name').addEventListener('change',()=>{
+    tracker.name=document.getElementById(p+'_name').value.trim()||tracker.name;
+    slSave();
+    slRenderLinkedBlock(containerId, linkedId, defaultTitle);
+  });
+
+  const settingFields = isCount ? ['target','unit'] : ['step','final','crisis','every','baseline'];
+  settingFields.forEach(suffix=>{
     document.getElementById(p+'_'+suffix).addEventListener('change',()=>{
-      tracker.settings.stepMinutes=Number(document.getElementById(p+'_step').value)||15;
-      tracker.settings.finalTarget=document.getElementById(p+'_final').value||'22:00';
-      tracker.settings.crisisThreshold=document.getElementById(p+'_crisis').value||'23:00';
-      tracker.settings.progressionEveryDays=Number(document.getElementById(p+'_every').value)||3;
-      tracker.settings.baselineDays=Number(document.getElementById(p+'_baseline').value)||3;
+      if(isCount){
+        tracker.settings.target=Number(document.getElementById(p+'_target').value)||1;
+        tracker.settings.unit=document.getElementById(p+'_unit').value.trim();
+      }else{
+        tracker.settings.stepMinutes=Number(document.getElementById(p+'_step').value)||15;
+        tracker.settings.finalTarget=document.getElementById(p+'_final').value||'22:00';
+        tracker.settings.crisisThreshold=document.getElementById(p+'_crisis').value||'23:00';
+        tracker.settings.progressionEveryDays=Number(document.getElementById(p+'_every').value)||3;
+        tracker.settings.baselineDays=Number(document.getElementById(p+'_baseline').value)||3;
+      }
       slSave();
-      slRenderLinkedBlock(containerId, linkedId);
+      slRenderLinkedBlock(containerId, linkedId, defaultTitle);
     });
   });
 }
