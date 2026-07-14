@@ -782,6 +782,25 @@ const BLOCKS = [
   ]},
 ];
 
+// Дата (YYYY-MM-DD), с которой привычка становится видимой на вкладке "День".
+// Привычек нет в этом объекте => ещё не запланированы, скрыты всегда.
+const STAGES = {
+  'sleep':    '2026-07-14',
+  'charge':   '2026-07-14',
+  'water':    '2026-07-14',
+  'fajr':     '2026-07-14',
+  'dhuhr':    '2026-07-14',
+  'asr':      '2026-07-14',
+  'maghrib':  '2026-07-14',
+  'isha':     '2026-07-14',
+  'juma':     '2026-07-14',
+  'med':      '2026-08-01',
+  'aff':      '2026-08-01',
+  'vis':      '2026-08-01',
+  'scripture_m': '2026-08-01',
+};
+function isStageActive(id){ const from=STAGES[id]; return !!from && from<=keyOf(new Date()); }
+
 const ALL_TASKS = BLOCKS.flatMap(b => b.tasks);
 const TASK_NAME = {}; ALL_TASKS.forEach(t => TASK_NAME[t.id] = t.name);
 const TOTAL = ALL_TASKS.length;
@@ -918,7 +937,7 @@ function renderDay(){
     home.style.display=''; bhead.style.display='none'; foot.style.display='';
     blocksEl.className='tiles';
     BLOCKS.forEach((b,bi)=>{
-      const vis=b.tasks.filter(t=>appliesOn(t,view) && !(hardMode&&!hget(t).min));
+      const vis=b.tasks.filter(t=>appliesOn(t,view) && isStageActive(t.id) && !(hardMode&&!hget(t).min));
       if(vis.length===0) return;
       const total=vis.length, done=vis.filter(t=>dd[t.id]).length;
       const pct=Math.round(done/total*100); const full=done===total;
@@ -931,7 +950,8 @@ function renderDay(){
       tile.addEventListener('click',()=>{ dayMode='block'; curBlock=bi; renderDay(); });
       blocksEl.appendChild(tile);
     });
-    const pct=pctOf(view, dd);
+    const visibleToday=ALL_TASKS.filter(t=>appliesOn(t,view) && isStageActive(t.id));
+    const pct=visibleToday.length ? Math.round(visibleToday.filter(t=>dd[t.id]).length/visibleToday.length*100) : 0;
     document.getElementById('pctNum').textContent=pct+'%';
     document.getElementById('ringFill').style.strokeDashoffset=RING_LEN*(1-pct/100);
     document.getElementById('streak').textContent=streakEnding(today);
@@ -943,7 +963,7 @@ function renderDay(){
   home.style.display='none'; bhead.style.display='flex'; foot.style.display='none';
   blocksEl.className='blocks';
   const b=BLOCKS[curBlock];
-  let visTasks=b.tasks.filter(t=>appliesOn(t,view));
+  let visTasks=b.tasks.filter(t=>appliesOn(t,view) && isStageActive(t.id));
   visTasks=visTasks.slice().sort((a,b)=>{ const ta=hget(a).time, tb=hget(b).time;
     if(ta&&tb) return ta<tb?-1:(ta>tb?1:0); if(ta) return -1; if(tb) return 1; return 0; });
   const total=visTasks.length, done=visTasks.filter(t=>dd[t.id]).length;
